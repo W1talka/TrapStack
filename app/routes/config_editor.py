@@ -1,9 +1,13 @@
 import os
 
 import yaml
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from fastapi import APIRouter, Request, Form, Query
+from fastapi.responses import RedirectResponse
 
-bp = Blueprint("config_editor", __name__, url_prefix="/config")
+from app import config
+from app.deps import templates
+
+router = APIRouter(prefix="/config")
 
 # Editable directories relative to CROWDSEC_CONF_DIR
 EDITABLE_DIRS = {
@@ -14,7 +18,7 @@ EDITABLE_DIRS = {
 
 
 def _get_conf_dir():
-    return current_app.config["CROWDSEC_CONF_DIR"]
+    return config.CROWDSEC_CONF_DIR
 
 
 def _list_files():
@@ -38,9 +42,14 @@ def _list_files():
     return groups
 
 
-@bp.route("/")
-def index():
-    selected = request.args.get("file", "")
+@router.get("/")
+async def index(
+    request: Request,
+    file: str = Query(default=""),
+    msg: str = Query(default=""),
+    msg_type: str = Query(default=""),
+):
+    selected = file
     content = ""
     error = None
 
@@ -48,10 +57,9 @@ def index():
 
     if selected:
         full_path = os.path.join(_get_conf_dir(), selected)
-        # Prevent path traversal (use abspath to allow symlinks)
+        # Prevent path traversal
         if not os.path.abspath(full_path).startswith(os.path.abspath(_get_conf_dir())):
-            flash("Invalid file path", "error")
-            return redirect(url_for("config_editor.index"))
+            return RedirectResponse(url="/config/?msg=Invalid+file+path&msg_type=error", status_code=303)
         try:
             with open(full_path) as f:
                 content = f.read()
@@ -60,43 +68,56 @@ def index():
         except Exception as e:
             error = f"Error reading file: {e}"
 
-    return render_template(
+    return templates.TemplateResponse(
         "config_editor.html",
-        file_groups=file_groups,
-        selected=selected,
-        content=content,
-        error=error,
+        {
+            "request": request,
+            "file_groups": file_groups,
+            "selected": selected,
+            "content": content,
+            "error": error,
+            "msg": msg,
+            "msg_type": msg_type,
+        },
     )
 
 
-@bp.route("/save", methods=["POST"])
-def save():
-    file_path = request.form.get("file", "").strip()
-    content = request.form.get("content", "")
+@router.post("/save")
+async def save(
+    file: str = Form(default=""),
+    content: str = Form(default=""),
+):
+    file_path = file.strip()
 
     if not file_path:
-        flash("No file selected", "error")
-        return redirect(url_for("config_editor.index"))
+        return RedirectResponse(url="/config/?msg=No+file+selected&msg_type=error", status_code=303)
 
     full_path = os.path.join(_get_conf_dir(), file_path)
 
-    # Prevent path traversal (use abspath to allow symlinks)
+    # Prevent path traversal
     if not os.path.abspath(full_path).startswith(os.path.abspath(_get_conf_dir())):
-        flash("Invalid file path", "error")
-        return redirect(url_for("config_editor.index"))
+        return RedirectResponse(url="/config/?msg=Invalid+file+path&msg_type=error", status_code=303)
 
     # Validate YAML
     try:
         list(yaml.safe_load_all(content))
     except yaml.YAMLError as e:
-        flash(f"Invalid YAML: {e}", "error")
-        return redirect(url_for("config_editor.index", file=file_path))
+        msg = f"Invalid YAML: {e}"
+        return RedirectResponse(
+            url=f"/config/?file={file_path}&msg={msg}&msg_type=error",
+            status_code=303,
+        )
 
     try:
         with open(full_path, "w") as f:
             f.write(content)
-        flash(f"Saved {file_path}", "success")
+        msg = f"Saved {file_path}"
+        msg_type = "success"
     except Exception as e:
-        flash(f"Failed to save: {e}", "error")
+        msg = f"Failed to save: {e}"
+        msg_type = "error"
 
-    return redirect(url_for("config_editor.index", file=file_path))
+    return RedirectResponse(
+        url=f"/config/?file={file_path}&msg={msg}&msg_type={msg_type}",
+        status_code=303,
+    )

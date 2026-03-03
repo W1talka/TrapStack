@@ -1,30 +1,34 @@
+import logging
 from collections import Counter
 
-from flask import Blueprint, render_template, current_app
+from fastapi import APIRouter, Request
 
-from app.crowdsec_client import get_client
+from app.crowdsec_client import CrowdSecClient
+from app.deps import templates, get_http_client
 
-bp = Blueprint("dashboard", __name__)
+logger = logging.getLogger("crowdsec-gui")
+
+router = APIRouter()
 
 
-@bp.route("/")
-def index():
+@router.get("/")
+async def index(request: Request):
     error = None
     decisions = []
     alerts = []
     stats = {"bans": 0, "alerts_total": 0, "top_scenario": "N/A", "top_country": "N/A"}
 
+    client = CrowdSecClient(get_http_client())
+
     try:
-        client = get_client()
-        decisions = client.get_decisions()
+        decisions = await client.get_decisions()
         stats["bans"] = len(decisions)
     except Exception as e:
         error = f"Failed to connect to CrowdSec LAPI: {e}"
-        current_app.logger.error(error)
+        logger.error(error)
 
     try:
-        client = get_client()
-        alerts = client.get_alerts(limit=100)
+        alerts = await client.get_alerts(limit=100)
         stats["alerts_total"] = len(alerts)
 
         scenarios = Counter()
@@ -42,35 +46,38 @@ def index():
         if countries:
             stats["top_country"] = countries.most_common(1)[0][0]
     except Exception as e:
-        current_app.logger.warning(f"Could not fetch alerts: {e}")
+        logger.warning(f"Could not fetch alerts: {e}")
 
-    return render_template(
+    return templates.TemplateResponse(
         "dashboard.html",
-        decisions=decisions[:10],
-        alerts=alerts[:10],
-        stats=stats,
-        error=error,
+        {
+            "request": request,
+            "decisions": decisions[:10],
+            "alerts": alerts[:10],
+            "stats": stats,
+            "error": error,
+        },
     )
 
 
-@bp.route("/partials/stats")
-def partial_stats():
+@router.get("/partials/stats")
+async def partial_stats(request: Request):
     """HTMX partial for auto-refreshing stats."""
     error = None
     decisions = []
     alerts = []
     stats = {"bans": 0, "alerts_total": 0, "top_scenario": "N/A", "top_country": "N/A"}
 
+    client = CrowdSecClient(get_http_client())
+
     try:
-        client = get_client()
-        decisions = client.get_decisions()
+        decisions = await client.get_decisions()
         stats["bans"] = len(decisions)
     except Exception as e:
         error = str(e)
 
     try:
-        client = get_client()
-        alerts = client.get_alerts(limit=100)
+        alerts = await client.get_alerts(limit=100)
         stats["alerts_total"] = len(alerts)
 
         scenarios = Counter()
@@ -88,9 +95,12 @@ def partial_stats():
     except Exception:
         pass
 
-    return render_template(
+    return templates.TemplateResponse(
         "partials/dashboard_stats.html",
-        decisions=decisions[:10],
-        stats=stats,
-        error=error,
+        {
+            "request": request,
+            "decisions": decisions[:10],
+            "stats": stats,
+            "error": error,
+        },
     )

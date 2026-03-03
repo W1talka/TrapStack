@@ -4,69 +4,60 @@
 {% block content %}
 <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-white">Decisions</h2>
-        <span class="text-sm text-cs-muted">{{ total }} active</span>
+        <h2 class="text-2xl font-bold">Decisions</h2>
+        <span class="text-sm text-base-content/60">{{ total }} active</span>
     </div>
 
-    {% if error %}
-    <div class="px-4 py-3 rounded-lg bg-cs-danger/20 text-red-300 border border-cs-danger/30 text-sm">
-        {{ error }}
+    {% if request.query_params.get('msg') %}
+    <div class="alert {{ 'alert-error' if request.query_params.get('msg_type') == 'error' else 'alert-success' }} text-sm">
+        {{ request.query_params.get('msg') }}
     </div>
     {% endif %}
 
+    {% if error %}
+    <div class="alert alert-error text-sm">{{ error }}</div>
+    {% endif %}
+
     <!-- Add Ban Form -->
-    <div class="bg-cs-card rounded-xl border border-cs-border p-5">
-        <h3 class="text-sm font-semibold text-white mb-4">Add Manual Ban</h3>
-        <form method="POST" action="{{ url_for('decisions.add') }}" class="flex flex-wrap gap-3 items-end">
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs text-cs-muted mb-1">IP / Range</label>
-                <input type="text" name="ip" placeholder="192.168.1.100 or 10.0.0.0/24"
-                       required
-                       class="w-full px-3 py-2 bg-cs-bg border border-cs-border rounded-lg text-white text-sm
-                              focus:outline-none focus:border-cs-accent focus:ring-1 focus:ring-cs-accent">
-            </div>
-            <div class="w-36">
-                <label class="block text-xs text-cs-muted mb-1">Duration</label>
-                <select name="duration"
-                        class="w-full px-3 py-2 bg-cs-bg border border-cs-border rounded-lg text-white text-sm
-                               focus:outline-none focus:border-cs-accent">
-                    <option value="1h">1 hour</option>
-                    <option value="4h" selected>4 hours</option>
-                    <option value="12h">12 hours</option>
-                    <option value="24h">24 hours</option>
-                    <option value="7d">7 days</option>
-                    <option value="30d">30 days</option>
-                    <option value="8760h">1 year</option>
-                </select>
-            </div>
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs text-cs-muted mb-1">Reason</label>
-                <input type="text" name="reason" value="Manual ban via GUI" placeholder="Reason for ban"
-                       class="w-full px-3 py-2 bg-cs-bg border border-cs-border rounded-lg text-white text-sm
-                              focus:outline-none focus:border-cs-accent focus:ring-1 focus:ring-cs-accent">
-            </div>
-            <button type="submit"
-                    class="px-4 py-2 bg-cs-danger hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors">
-                Ban
-            </button>
-        </form>
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body">
+            <h3 class="text-sm font-semibold mb-4">Add Manual Ban</h3>
+            <form method="POST" action="/decisions/add" class="flex flex-wrap gap-3 items-end">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="label"><span class="label-text text-xs">IP / Range</span></label>
+                    <input type="text" name="ip" placeholder="192.168.1.100 or 10.0.0.0/24"
+                           required class="input input-bordered w-full input-sm">
+                </div>
+                <div class="w-36">
+                    <label class="label"><span class="label-text text-xs">Duration</span></label>
+                    <select name="duration" class="select select-bordered select-sm w-full">
+                        <option value="1h">1 hour</option>
+                        <option value="4h" selected>4 hours</option>
+                        <option value="12h">12 hours</option>
+                        <option value="24h">24 hours</option>
+                        <option value="7d">7 days</option>
+                        <option value="30d">30 days</option>
+                        <option value="8760h">1 year</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="label"><span class="label-text text-xs">Reason</span></label>
+                    <input type="text" name="reason" value="Manual ban via GUI" placeholder="Reason for ban"
+                           class="input input-bordered w-full input-sm">
+                </div>
+                <button type="submit" class="btn btn-error btn-sm">Ban</button>
+            </form>
+        </div>
     </div>
 
     <!-- Search -->
     <div class="flex gap-3">
-        <form method="GET" action="{{ url_for('decisions.index') }}" class="flex-1 flex gap-2">
+        <form method="GET" action="/decisions/" class="flex-1 flex gap-2">
             <input type="text" name="search" value="{{ search }}" placeholder="Search by IP, scenario, or origin..."
-                   class="flex-1 px-3 py-2 bg-cs-card border border-cs-border rounded-lg text-white text-sm
-                          focus:outline-none focus:border-cs-accent focus:ring-1 focus:ring-cs-accent">
-            <button type="submit"
-                    class="px-4 py-2 bg-cs-accent hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">
-                Search
-            </button>
+                   class="input input-bordered flex-1 input-sm">
+            <button type="submit" class="btn btn-primary btn-sm">Search</button>
             {% if search %}
-            <a href="{{ url_for('decisions.index') }}"
-               class="px-4 py-2 bg-cs-border hover:bg-cs-muted/30 text-white rounded-lg text-sm font-medium transition-colors">
-                Clear
-            </a>
+            <a href="/decisions/" class="btn btn-ghost btn-sm">Clear</a>
             {% endif %}
         </form>
     </div>
@@ -74,16 +65,14 @@
     <!-- Origin filter -->
     {% if origins %}
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs text-cs-muted font-medium mr-1">Origin:</span>
-        <a href="{{ url_for('decisions.index', search=search) }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                  {% if not selected_origin %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+        <span class="text-xs text-base-content/60 font-medium mr-1">Origin:</span>
+        <a href="/decisions/?search={{ search }}"
+           class="btn btn-sm {% if not selected_origin %}btn-primary{% else %}btn-outline{% endif %}">
             All
         </a>
         {% for origin in origins %}
-        <a href="{{ url_for('decisions.index', origin=origin, search=search) }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                  {% if selected_origin == origin %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+        <a href="/decisions/?origin={{ origin }}&search={{ search }}"
+           class="btn btn-sm {% if selected_origin == origin %}btn-primary{% else %}btn-outline{% endif %}">
             {{ origin }}
         </a>
         {% endfor %}
@@ -98,28 +87,23 @@
     <!-- Pagination -->
     {% if total_pages > 1 %}
     <div class="flex items-center justify-between">
-        <span class="text-xs text-cs-muted">
+        <span class="text-xs text-base-content/60">
             Page {{ page }} of {{ total_pages }} ({{ total }} total)
         </span>
-        <div class="flex items-center gap-2">
+        <div class="join">
             {% if page > 1 %}
-            <a href="{{ url_for('decisions.index', page=page-1, search=search, origin=selected_origin) }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-medium bg-cs-card text-cs-muted hover:text-white border border-cs-border transition-colors">
-                Previous
-            </a>
+            <a href="/decisions/?page={{ page - 1 }}&search={{ search }}&origin={{ selected_origin }}"
+               class="join-item btn btn-sm">Previous</a>
             {% endif %}
             {% for p in range(1, total_pages + 1) %}
-            <a href="{{ url_for('decisions.index', page=p, search=search, origin=selected_origin) }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                      {% if p == page %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+            <a href="/decisions/?page={{ p }}&search={{ search }}&origin={{ selected_origin }}"
+               class="join-item btn btn-sm {% if p == page %}btn-primary{% endif %}">
                 {{ p }}
             </a>
             {% endfor %}
             {% if page < total_pages %}
-            <a href="{{ url_for('decisions.index', page=page+1, search=search, origin=selected_origin) }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-medium bg-cs-card text-cs-muted hover:text-white border border-cs-border transition-colors">
-                Next
-            </a>
+            <a href="/decisions/?page={{ page + 1 }}&search={{ search }}&origin={{ selected_origin }}"
+               class="join-item btn btn-sm">Next</a>
             {% endif %}
         </div>
     </div>

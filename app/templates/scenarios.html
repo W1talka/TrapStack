@@ -4,27 +4,25 @@
 {% block content %}
 <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-white">CrowdSec Scenarios</h2>
-        <span class="text-sm text-cs-muted">{{ deployed_count }}/{{ scenarios|length }} deployed</span>
+        <h2 class="text-2xl font-bold">CrowdSec Scenarios</h2>
+        <span class="text-sm text-base-content/60">{{ deployed_count }}/{{ scenarios|length }} deployed</span>
     </div>
 
     <!-- Info banner -->
-    <div class="flex items-center justify-between bg-cs-accent/10 border border-cs-accent/30 rounded-xl px-5 py-3">
-        <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-sm text-blue-300">
-                Deploy scenarios to auto-detect and ban attack patterns. <strong>Restart CrowdSec</strong> after changes.
-            </span>
-        </div>
+    <div class="alert alert-info">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-sm">
+            Deploy scenarios to auto-detect and ban attack patterns. <strong>Restart CrowdSec</strong> after changes.
+        </span>
         <div id="deploy-all-result">
-            <button hx-post="{{ url_for('scenarios.deploy_all') }}"
+            <button hx-post="/scenarios/deploy-all"
                     hx-target="#deploy-all-result"
                     hx-swap="innerHTML"
                     hx-confirm="Deploy all scenarios?"
-                    class="px-4 py-2 text-xs font-semibold rounded-lg bg-cs-accent hover:bg-blue-600 text-white transition-colors inline-flex items-center gap-2">
+                    class="btn btn-primary btn-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -37,69 +35,67 @@
     <!-- Scenario cards -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {% for s in scenarios %}
-        <div class="bg-cs-card rounded-xl border border-cs-border p-5 space-y-4">
-            <!-- Header -->
-            <div class="flex items-start justify-between">
-                <div class="space-y-1">
-                    <h3 class="text-sm font-bold text-white">{{ s.yaml_content.name }}</h3>
-                    <p class="text-xs text-cs-muted leading-relaxed">{{ s.description }}</p>
-                </div>
-                <span class="shrink-0 ml-3 px-2 py-0.5 rounded text-[10px] font-semibold uppercase
-                    {% if s.severity == 'critical' %}bg-red-500/20 text-red-300
-                    {% elif s.severity == 'high' %}bg-orange-500/20 text-orange-300
-                    {% elif s.severity == 'medium' %}bg-yellow-500/20 text-yellow-300
-                    {% else %}bg-blue-500/20 text-blue-300{% endif %}">
-                    {{ s.severity }}
-                </span>
-            </div>
-
-            <!-- Details -->
-            <div class="flex gap-4 text-xs text-cs-muted">
-                <div>
-                    <span class="text-cs-muted/60">Capacity:</span>
-                    <span class="text-white font-medium">{{ s.yaml_content.capacity }}</span>
-                </div>
-                <div>
-                    <span class="text-cs-muted/60">Leak:</span>
-                    <span class="text-white font-medium">{{ s.yaml_content.leakspeed }}</span>
-                </div>
-                <div>
-                    <span class="text-cs-muted/60">Blackhole:</span>
-                    <span class="text-white font-medium">{{ s.yaml_content.blackhole }}</span>
-                </div>
-            </div>
-
-            <!-- Filter preview -->
-            <div class="bg-cs-bg rounded-lg px-3 py-2">
-                <code class="text-[11px] text-cs-muted break-all">{{ s.yaml_content.filter }}</code>
-            </div>
-
-            <!-- Status + action -->
-            <div id="scenario-status-{{ s.id }}">
-                <div class="flex items-center gap-3">
-                    {% if s.deployed %}
-                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-cs-success/20 text-green-300 border border-cs-success/30">
-                        Active
+        <div class="card bg-base-200 shadow-sm">
+            <div class="card-body space-y-4">
+                <!-- Header -->
+                <div class="flex items-start justify-between">
+                    <div class="space-y-1">
+                        <h3 class="text-sm font-bold">{{ s.yaml_content.name }}</h3>
+                        <p class="text-xs text-base-content/60 leading-relaxed">{{ s.description }}</p>
+                    </div>
+                    <span class="shrink-0 ml-3 badge badge-sm
+                        {% if s.severity == 'critical' %}badge-error
+                        {% elif s.severity == 'high' %}badge-warning
+                        {% elif s.severity == 'medium' %}badge-warning badge-outline
+                        {% else %}badge-info{% endif %}">
+                        {{ s.severity }}
                     </span>
-                    <button hx-post="{{ url_for('scenarios.undeploy_scenario') }}"
-                            hx-vals='{"id": "{{ s.id }}"}'
-                            hx-target="#scenario-status-{{ s.id }}"
-                            hx-swap="innerHTML"
-                            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-cs-border hover:bg-cs-muted/30 text-white transition-colors">
-                        Undeploy
-                    </button>
-                    {% else %}
-                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-cs-border text-cs-muted">
-                        Not deployed
-                    </span>
-                    <button hx-post="{{ url_for('scenarios.deploy_scenario') }}"
-                            hx-vals='{"id": "{{ s.id }}"}'
-                            hx-target="#scenario-status-{{ s.id }}"
-                            hx-swap="innerHTML"
-                            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-cs-accent hover:bg-blue-600 text-white transition-colors">
-                        Deploy
-                    </button>
-                    {% endif %}
+                </div>
+
+                <!-- Details -->
+                <div class="flex gap-4 text-xs text-base-content/60">
+                    <div>
+                        <span class="opacity-60">Capacity:</span>
+                        <span class="font-medium">{{ s.yaml_content.capacity }}</span>
+                    </div>
+                    <div>
+                        <span class="opacity-60">Leak:</span>
+                        <span class="font-medium">{{ s.yaml_content.leakspeed }}</span>
+                    </div>
+                    <div>
+                        <span class="opacity-60">Blackhole:</span>
+                        <span class="font-medium">{{ s.yaml_content.blackhole }}</span>
+                    </div>
+                </div>
+
+                <!-- Filter preview -->
+                <div class="bg-base-300 rounded-lg px-3 py-2">
+                    <code class="text-[11px] text-base-content/60 break-all">{{ s.yaml_content.filter }}</code>
+                </div>
+
+                <!-- Status + action -->
+                <div id="scenario-status-{{ s.id }}">
+                    <div class="flex items-center gap-3">
+                        {% if s.deployed %}
+                        <span class="badge badge-success">Active</span>
+                        <button hx-post="/scenarios/undeploy"
+                                hx-vals='{"id": "{{ s.id }}"}'
+                                hx-target="#scenario-status-{{ s.id }}"
+                                hx-swap="innerHTML"
+                                class="btn btn-ghost btn-xs">
+                            Undeploy
+                        </button>
+                        {% else %}
+                        <span class="badge badge-ghost">Not deployed</span>
+                        <button hx-post="/scenarios/deploy"
+                                hx-vals='{"id": "{{ s.id }}"}'
+                                hx-target="#scenario-status-{{ s.id }}"
+                                hx-swap="innerHTML"
+                                class="btn btn-primary btn-xs">
+                            Deploy
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

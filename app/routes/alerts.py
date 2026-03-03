@@ -1,23 +1,32 @@
-from flask import Blueprint, render_template, request, current_app
+import logging
 
-from app.crowdsec_client import get_client
+from fastapi import APIRouter, Request, Query
 
-bp = Blueprint("alerts", __name__, url_prefix="/alerts")
+from app.crowdsec_client import CrowdSecClient
+from app.deps import templates, get_http_client
 
+logger = logging.getLogger("crowdsec-gui")
+
+router = APIRouter(prefix="/alerts")
 
 PER_PAGE = 100
 
 
-@bp.route("/")
-def index():
+@router.get("/")
+async def index(
+    request: Request,
+    scenario: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+):
     error = None
     alerts = []
-    scenario_filter = request.args.get("scenario", "").strip()
-    page = max(1, int(request.args.get("page", 1)))
+    all_scenarios = []
+    scenario_filter = scenario.strip()
+
+    client = CrowdSecClient(get_http_client())
 
     try:
-        client = get_client()
-        alerts = client.get_alerts(limit=500)
+        alerts = await client.get_alerts(limit=500)
 
         # Extract unique scenarios for filter dropdown
         all_scenarios = sorted(set(a.get("scenario", "") for a in alerts if a.get("scenario")))
@@ -27,8 +36,7 @@ def index():
 
     except Exception as e:
         error = f"Failed to fetch alerts: {e}"
-        current_app.logger.error(error)
-        all_scenarios = []
+        logger.error(error)
 
     total = len(alerts)
     total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
@@ -36,25 +44,32 @@ def index():
     start = (page - 1) * PER_PAGE
     paginated = alerts[start:start + PER_PAGE]
 
-    return render_template(
+    return templates.TemplateResponse(
         "alerts.html",
-        alerts=paginated,
-        total=total,
-        all_scenarios=all_scenarios,
-        scenario_filter=scenario_filter,
-        error=error,
-        page=page,
-        total_pages=total_pages,
+        {
+            "request": request,
+            "alerts": paginated,
+            "total": total,
+            "all_scenarios": all_scenarios,
+            "scenario_filter": scenario_filter,
+            "error": error,
+            "page": page,
+            "total_pages": total_pages,
+        },
     )
 
 
-@bp.route("/detail/<int:alert_id>")
-def detail(alert_id):
+@router.get("/detail/{alert_id}")
+async def detail(request: Request, alert_id: int):
     """HTMX partial: expanded alert detail row."""
+    client = CrowdSecClient(get_http_client())
+
     try:
-        client = get_client()
-        alert = client.get_alert_detail(alert_id)
+        alert = await client.get_alert_detail(alert_id)
     except Exception:
         alert = None
 
-    return render_template("partials/alert_detail.html", alert=alert)
+    return templates.TemplateResponse(
+        "partials/alert_detail.html",
+        {"request": request, "alert": alert},
+    )

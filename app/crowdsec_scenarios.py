@@ -7,7 +7,8 @@ config directory. The GUI allows deploying/undeploying these.
 import os
 
 import yaml
-from flask import current_app
+
+from app import config
 
 
 SCENARIOS = [
@@ -144,8 +145,7 @@ SCENARIOS = [
 
 
 def _scenarios_dir():
-    conf_dir = current_app.config["CROWDSEC_CONF_DIR"]
-    return os.path.join(conf_dir, "scenarios")
+    return os.path.join(config.CROWDSEC_CONF_DIR, "scenarios")
 
 
 def is_deployed(scenario):

@@ -2,12 +2,15 @@ import json
 import os
 import re
 
-from flask import Blueprint, render_template, request, current_app
+from fastapi import APIRouter, Request, Form, Query
+from fastapi.responses import HTMLResponse
 
-from app.crowdsec_client import get_client
+from app import config
+from app.crowdsec_client import CrowdSecClient
+from app.deps import templates, get_http_client
 from app.threat_detection import classify_entries
 
-bp = Blueprint("logs", __name__, url_prefix="/logs")
+router = APIRouter(prefix="/logs")
 
 # Pattern: [timestamp] host remote_addr ...
 LOG_PATTERN = re.compile(
@@ -19,7 +22,7 @@ LOG_PATTERN = re.compile(
 
 
 def _get_log_dir():
-    return current_app.config.get("NPMPLUS_LOG_DIR", "/opt/npmplus/nginx/logs")
+    return config.NPMPLUS_LOG_DIR
 
 
 def _parse_line(line):
@@ -100,26 +103,31 @@ def _tail_error_log(log_path, limit=100):
     return lines
 
 
-def _get_banned_ips():
+async def _get_banned_ips():
     """Fetch currently banned IPs from CrowdSec LAPI."""
     try:
-        client = get_client()
-        decisions = client.get_decisions()
+        client = CrowdSecClient(get_http_client())
+        decisions = await client.get_decisions()
         return {d.get("value") for d in decisions if d.get("value")}
     except Exception:
         return set()
 
 
-@bp.route("/")
-def index():
+@router.get("/")
+async def index(
+    request: Request,
+    host: str = Query(default=""),
+    status: str = Query(default=""),
+    type: str = Query(default="access"),
+    limit: int = Query(default=200, le=1000),
+):
     log_dir = _get_log_dir()
     log_file = os.path.join(log_dir, "access.log")
     error_log_file = os.path.join(log_dir, "error.log")
 
-    host_filter = request.args.get("host", "")
-    status_filter = request.args.get("status", "")
-    log_type = request.args.get("type", "access")
-    limit = min(int(request.args.get("limit", 200)), 1000)
+    host_filter = host
+    status_filter = status
+    log_type = type
 
     hosts = _get_hosts_from_log(log_file)
     status_codes = _get_status_codes_from_log(log_file)
@@ -138,7 +146,7 @@ def index():
         entries = _tail_log(log_file, host_filter=host_filter or None,
                            status_filter=status_filter or None, limit=limit)
         entries = classify_entries(entries)
-        banned_ips = _get_banned_ips()
+        banned_ips = await _get_banned_ips()
 
         # Build bulk ban data for the "Ban All" button
         threat_data = []
@@ -157,64 +165,73 @@ def index():
         threat_count = sum(1 for e in entries if e.get("threat"))
         bulk_threats_json = json.dumps(threat_data)
 
-    return render_template(
+    return templates.TemplateResponse(
         "logs.html",
-        hosts=hosts,
-        status_codes=status_codes,
-        entries=entries,
-        error_lines=error_lines,
-        selected_host=host_filter,
-        selected_status=status_filter,
-        log_type=log_type,
-        limit=limit,
-        error=error,
-        banned_ips=banned_ips,
-        threat_count=threat_count,
-        bulk_threats_json=bulk_threats_json,
+        {
+            "request": request,
+            "hosts": hosts,
+            "status_codes": status_codes,
+            "entries": entries,
+            "error_lines": error_lines,
+            "selected_host": host_filter,
+            "selected_status": status_filter,
+            "log_type": log_type,
+            "limit": limit,
+            "error": error,
+            "banned_ips": banned_ips,
+            "threat_count": threat_count,
+            "bulk_threats_json": bulk_threats_json,
+        },
     )
 
 
-@bp.route("/ban", methods=["POST"])
-def ban_from_log():
+@router.post("/ban")
+async def ban_from_log(
+    ip: str = Form(default=""),
+    scenario: str = Form(default="custom/manual-log-ban"),
+    duration: str = Form(default="24h"),
+    label: str = Form(default="Detected in logs"),
+):
     """HTMX endpoint: ban an IP detected as a threat from the log viewer."""
-    ip = request.form.get("ip", "").strip()
-    scenario = request.form.get("scenario", "custom/manual-log-ban").strip()
-    duration = request.form.get("duration", "24h").strip()
-    label = request.form.get("label", "Detected in logs").strip()
+    ip = ip.strip()
+    scenario = scenario.strip()
+    duration = duration.strip()
+    label = label.strip()
 
     if not ip:
-        return '<span class="text-red-400 text-xs">No IP</span>', 400
+        return HTMLResponse('<span class="text-error text-xs">No IP</span>', status_code=400)
 
     try:
-        client = get_client()
+        client = CrowdSecClient(get_http_client())
         reason = f"{label} - {scenario}"
-        client.add_decision(ip=ip, duration=duration, reason=reason)
-        return f'''<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded
-                         bg-cs-danger/20 text-red-300 text-xs font-medium">
+        await client.add_decision(ip=ip, duration=duration, reason=reason)
+        return HTMLResponse(f'''<span class="inline-flex items-center gap-1 badge badge-error badge-sm">
                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                      </svg>
                      Banned ({duration})
-                   </span>'''
+                   </span>''')
     except Exception as e:
-        return f'<span class="text-red-400 text-xs">Error: {e}</span>', 500
+        return HTMLResponse(f'<span class="text-error text-xs">Error: {e}</span>', status_code=500)
 
 
-@bp.route("/ban-all-threats", methods=["POST"])
-def ban_all_threats():
+@router.post("/ban-all-threats")
+async def ban_all_threats(
+    threats: str = Form(default="[]"),
+):
     """HTMX endpoint: ban all detected threat IPs at once."""
-    threats = json.loads(request.form.get("threats", "[]"))
+    threat_list = json.loads(threats)
 
-    if not threats:
-        return '<span class="text-cs-muted text-xs">No threats to ban</span>'
+    if not threat_list:
+        return HTMLResponse('<span class="text-base-content/60 text-xs">No threats to ban</span>')
 
-    client = get_client()
+    client = CrowdSecClient(get_http_client())
 
     # Deduplicate by IP
     seen = set()
     unique = []
-    for t in threats:
+    for t in threat_list:
         if t["ip"] not in seen:
             seen.add(t["ip"])
             unique.append(t)
@@ -224,16 +241,17 @@ def ban_all_threats():
     for t in unique:
         try:
             reason = f"{t.get('label', 'Log threat')} - {t.get('scenario', 'custom/manual-log-ban')}"
-            client.add_decision(ip=t["ip"], duration=t.get("duration", "24h"), reason=reason)
+            await client.add_decision(ip=t["ip"], duration=t.get("duration", "24h"), reason=reason)
             banned += 1
         except Exception:
             errors += 1
 
     error_text = f" {errors} failed." if errors else ""
-    return f'''<span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                     bg-cs-success/20 text-green-300 border border-cs-success/30 text-sm font-medium">
-                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                 </svg>
-                 Banned {banned} IPs.{error_text} Refresh to update.
-               </span>'''
+    return HTMLResponse(f'''<span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg">
+                 <div class="alert alert-success">
+                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                   </svg>
+                   Banned {banned} IPs.{error_text} Refresh to update.
+                 </div>
+               </span>''')

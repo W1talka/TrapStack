@@ -4,40 +4,34 @@
 {% block content %}
 <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-white">Reverse Proxy Logs</h2>
-        <div class="flex items-center gap-3">
-            <a href="{{ url_for('logs.index', type='access', host=selected_host) }}"
-               class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                      {% if log_type == 'access' %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+        <h2 class="text-2xl font-bold">Reverse Proxy Logs</h2>
+        <div class="flex items-center gap-1">
+            <a href="/logs/?type=access&host={{ selected_host }}"
+               class="btn btn-sm {% if log_type == 'access' %}btn-primary{% else %}btn-ghost{% endif %}">
                 Access Log
             </a>
-            <a href="{{ url_for('logs.index', type='error', host=selected_host) }}"
-               class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                      {% if log_type == 'error' %}bg-cs-danger text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+            <a href="/logs/?type=error&host={{ selected_host }}"
+               class="btn btn-sm {% if log_type == 'error' %}btn-error{% else %}btn-ghost{% endif %}">
                 Error Log
             </a>
         </div>
     </div>
 
     {% if error %}
-    <div class="px-4 py-3 rounded-lg bg-cs-danger/20 text-red-300 border border-cs-danger/30 text-sm">
-        {{ error }}
-    </div>
+    <div class="alert alert-error text-sm">{{ error }}</div>
     {% endif %}
 
     <!-- Host filter -->
     {% if log_type == 'access' %}
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs text-cs-muted font-medium mr-1">Host:</span>
-        <a href="{{ url_for('logs.index', type='access', status=selected_status) }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                  {% if not selected_host %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+        <span class="text-xs text-base-content/60 font-medium mr-1">Host:</span>
+        <a href="/logs/?type=access&status={{ selected_status }}"
+           class="btn btn-sm {% if not selected_host %}btn-primary{% else %}btn-outline{% endif %}">
             All Hosts
         </a>
         {% for host in hosts %}
-        <a href="{{ url_for('logs.index', type='access', host=host, status=selected_status) }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                  {% if selected_host == host %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+        <a href="/logs/?type=access&host={{ host }}&status={{ selected_status }}"
+           class="btn btn-sm {% if selected_host == host %}btn-primary{% else %}btn-outline{% endif %}">
             {{ host }}
         </a>
         {% endfor %}
@@ -46,21 +40,20 @@
     <!-- Status code filter -->
     {% if status_codes %}
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs text-cs-muted font-medium mr-1">Status:</span>
-        <a href="{{ url_for('logs.index', type='access', host=selected_host) }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
-                  {% if not selected_status %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+        <span class="text-xs text-base-content/60 font-medium mr-1">Status:</span>
+        <a href="/logs/?type=access&host={{ selected_host }}"
+           class="btn btn-sm {% if not selected_status %}btn-primary{% else %}btn-outline{% endif %}">
             All
         </a>
         {% for code in status_codes %}
-        <a href="{{ url_for('logs.index', type='access', host=selected_host, status=code) }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
+        <a href="/logs/?type=access&host={{ selected_host }}&status={{ code }}"
+           class="btn btn-sm
                   {% if selected_status == code %}
-                      {% if code|int >= 500 %}bg-cs-danger text-white
-                      {% elif code|int >= 400 %}bg-cs-warn text-white
-                      {% elif code|int >= 300 %}bg-cs-accent text-white
-                      {% else %}bg-cs-success text-white{% endif %}
-                  {% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+                      {% if code|int >= 500 %}btn-error
+                      {% elif code|int >= 400 %}btn-warning
+                      {% elif code|int >= 300 %}btn-info
+                      {% else %}btn-success{% endif %}
+                  {% else %}btn-outline{% endif %}">
             {{ code }}
         </a>
         {% endfor %}
@@ -69,23 +62,21 @@
 
     <!-- Threat summary bar -->
     {% if threat_count > 0 %}
-    <div class="flex items-center justify-between bg-cs-danger/10 border border-cs-danger/30 rounded-xl px-5 py-3">
-        <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-            </svg>
-            <span class="text-sm text-red-300">
-                <strong>{{ threat_count }}</strong> threats detected
-            </span>
-        </div>
+    <div class="alert alert-error">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+        </svg>
+        <span class="text-sm">
+            <strong>{{ threat_count }}</strong> threats detected
+        </span>
         <div id="ban-all-result">
-            <button hx-post="{{ url_for('logs.ban_all_threats') }}"
+            <button hx-post="/logs/ban-all-threats"
                     hx-target="#ban-all-result"
                     hx-swap="innerHTML"
                     hx-vals='{"threats": {{ bulk_threats_json|tojson }}}'
                     hx-confirm="Ban all detected threat IPs?"
-                    class="px-4 py-2 text-xs font-semibold rounded-lg bg-cs-danger hover:bg-red-600 text-white transition-colors inline-flex items-center gap-2">
+                    class="btn btn-error btn-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
@@ -102,25 +93,25 @@
     <div id="logs-table">
         {% include "partials/logs_table.html" %}
     </div>
-    <div class="flex items-center justify-between text-xs text-cs-muted">
+    <div class="flex items-center justify-between text-xs text-base-content/60">
         <span>Showing {{ entries|length }} most recent entries (limit: {{ limit }})</span>
         {% if threat_count > 0 %}
-        <span class="text-red-400">{{ threat_count }} threats detected</span>
+        <span class="text-error">{{ threat_count }} threats detected</span>
         {% endif %}
     </div>
 
     {% else %}
     <!-- Error log -->
-    <div class="bg-cs-card rounded-xl border border-cs-border overflow-hidden">
-        <div class="p-4 space-y-1 font-mono text-xs">
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-4 space-y-1 font-mono text-xs">
             {% for line in error_lines %}
-            <div class="text-red-300/80 py-0.5">{{ line }}</div>
+            <div class="text-error/80 py-0.5">{{ line }}</div>
             {% else %}
-            <div class="text-cs-muted text-center py-8">No error log entries</div>
+            <div class="text-base-content/60 text-center py-8">No error log entries</div>
             {% endfor %}
         </div>
     </div>
-    <div class="text-xs text-cs-muted">Showing {{ error_lines|length }} most recent entries</div>
+    <div class="text-xs text-base-content/60">Showing {{ error_lines|length }} most recent entries</div>
     {% endif %}
 </div>
 {% endblock %}

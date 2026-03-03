@@ -1,48 +1,48 @@
-<div class="bg-cs-card rounded-xl border border-cs-border overflow-hidden">
+<div class="card bg-base-200 shadow-sm">
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="table table-zebra">
             <thead>
-                <tr class="text-cs-muted text-left border-b border-cs-border">
-                    <th class="px-5 py-3 font-medium">IP</th>
-                    <th class="px-5 py-3 font-medium">Scenario</th>
-                    <th class="px-5 py-3 font-medium">Action</th>
-                    <th class="px-5 py-3 font-medium">Origin</th>
-                    <th class="px-5 py-3 font-medium">Scope</th>
-                    <th class="px-5 py-3 font-medium">Expiry</th>
-                    <th class="px-5 py-3 font-medium w-20"></th>
+                <tr>
+                    <th>IP</th>
+                    <th>Scenario</th>
+                    <th>Action</th>
+                    <th>Origin</th>
+                    <th>Scope</th>
+                    <th>Expiry</th>
+                    <th class="w-20"></th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-cs-border">
+            <tbody>
                 {% for d in decisions %}
-                <tr class="hover:bg-white/5 transition-colors" id="decision-{{ d.id }}">
-                    <td class="px-5 py-3 font-mono text-white">{{ d.value }}</td>
-                    <td class="px-5 py-3 text-cs-muted" title="{{ d.scenario }}">
+                <tr class="hover" id="decision-{{ d.id }}">
+                    <td class="font-mono">{{ d.value }}</td>
+                    <td class="text-base-content/60" title="{{ d.scenario }}">
                         {{ d.scenario.split('/')[-1] if d.scenario and '/' in d.scenario else d.scenario }}
                     </td>
-                    <td class="px-5 py-3">
-                        <span class="px-2 py-0.5 rounded text-xs font-medium
-                            {% if d.type == 'ban' %}bg-cs-danger/20 text-red-300
-                            {% elif d.type == 'captcha' %}bg-cs-warn/20 text-yellow-300
-                            {% else %}bg-cs-accent/20 text-blue-300{% endif %}">
+                    <td>
+                        <span class="badge badge-sm
+                            {% if d.type == 'ban' %}badge-error
+                            {% elif d.type == 'captcha' %}badge-warning
+                            {% else %}badge-info{% endif %}">
                             {{ d.type }}
                         </span>
                     </td>
-                    <td class="px-5 py-3 text-cs-muted">{{ d.origin }}</td>
-                    <td class="px-5 py-3 text-cs-muted">{{ d.scope }}</td>
-                    <td class="px-5 py-3 text-cs-muted">{{ d.duration }}</td>
-                    <td class="px-5 py-3">
-                        <button hx-delete="{{ url_for('decisions.delete', decision_id=d.id) }}"
+                    <td class="text-base-content/60">{{ d.origin }}</td>
+                    <td class="text-base-content/60">{{ d.scope }}</td>
+                    <td class="text-base-content/60">{{ d.duration }}</td>
+                    <td>
+                        <button hx-delete="/decisions/delete/{{ d.id }}"
                                 hx-target="#decisions-table"
                                 hx-swap="innerHTML"
                                 hx-confirm="Remove ban on {{ d.value }}?"
-                                class="px-2 py-1 text-xs bg-cs-danger/20 text-red-300 hover:bg-cs-danger/40 rounded transition-colors">
+                                class="btn btn-error btn-outline btn-xs">
                             Remove
                         </button>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="px-5 py-8 text-center text-cs-muted">No active decisions</td>
+                    <td colspan="7" class="text-center text-base-content/60 py-8">No active decisions</td>
                 </tr>
                 {% endfor %}
             </tbody>

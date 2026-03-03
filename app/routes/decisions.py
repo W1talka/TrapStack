@@ -1,25 +1,35 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+import logging
 
-from app.crowdsec_client import get_client
+from fastapi import APIRouter, Request, Form, Query
+from fastapi.responses import RedirectResponse, HTMLResponse
 
-bp = Blueprint("decisions", __name__, url_prefix="/decisions")
+from app.crowdsec_client import CrowdSecClient
+from app.deps import templates, get_http_client
 
+logger = logging.getLogger("crowdsec-gui")
+
+router = APIRouter(prefix="/decisions")
 
 PER_PAGE = 100
 
 
-@bp.route("/")
-def index():
+@router.get("/")
+async def index(
+    request: Request,
+    search: str = Query(default=""),
+    origin: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+):
     error = None
     decisions = []
-    search = request.args.get("search", "").strip()
-    origin_filter = request.args.get("origin", "").strip()
-    page = max(1, int(request.args.get("page", 1)))
     all_origins = []
+    search = search.strip()
+    origin_filter = origin.strip()
+
+    client = CrowdSecClient(get_http_client())
 
     try:
-        client = get_client()
-        decisions = client.get_decisions()
+        decisions = await client.get_decisions()
 
         # Extract unique origins for filter chips
         all_origins = sorted(set(d.get("origin", "") for d in decisions if d.get("origin")))
@@ -39,7 +49,7 @@ def index():
 
     except Exception as e:
         error = f"Failed to fetch decisions: {e}"
-        current_app.logger.error(error)
+        logger.error(error)
 
     total = len(decisions)
     total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
@@ -47,67 +57,83 @@ def index():
     start = (page - 1) * PER_PAGE
     paginated = decisions[start:start + PER_PAGE]
 
-    return render_template(
+    return templates.TemplateResponse(
         "decisions.html",
-        decisions=paginated,
-        total=total,
-        search=search,
-        error=error,
-        page=page,
-        total_pages=total_pages,
-        origins=all_origins,
-        selected_origin=origin_filter,
+        {
+            "request": request,
+            "decisions": paginated,
+            "total": total,
+            "search": search,
+            "error": error,
+            "page": page,
+            "total_pages": total_pages,
+            "origins": all_origins,
+            "selected_origin": origin_filter,
+        },
     )
 
 
-@bp.route("/add", methods=["POST"])
-def add():
-    ip = request.form.get("ip", "").strip()
-    duration = request.form.get("duration", "4h").strip()
-    reason = request.form.get("reason", "Manual ban via GUI").strip()
+@router.post("/add")
+async def add(
+    ip: str = Form(default=""),
+    duration: str = Form(default="4h"),
+    reason: str = Form(default="Manual ban via GUI"),
+):
+    ip = ip.strip()
+    duration = duration.strip()
+    reason = reason.strip()
+
+    msg = ""
+    msg_type = "success"
 
     if not ip:
-        flash("IP address is required", "error")
-        return redirect(url_for("decisions.index"))
+        msg = "IP address is required"
+        msg_type = "error"
+    else:
+        try:
+            client = CrowdSecClient(get_http_client())
+            await client.add_decision(ip=ip, duration=duration, reason=reason)
+            msg = f"Banned {ip} for {duration}"
+        except Exception as e:
+            msg = f"Failed to add decision: {e}"
+            msg_type = "error"
+
+    response = RedirectResponse(url=f"/decisions/?msg={msg}&msg_type={msg_type}", status_code=303)
+    return response
+
+
+@router.delete("/delete/{decision_id}")
+async def delete(request: Request, decision_id: int):
+    client = CrowdSecClient(get_http_client())
 
     try:
-        client = get_client()
-        client.add_decision(ip=ip, duration=duration, reason=reason)
-        flash(f"Banned {ip} for {duration}", "success")
-    except Exception as e:
-        flash(f"Failed to add decision: {e}", "error")
-
-    return redirect(url_for("decisions.index"))
-
-
-@bp.route("/delete/<int:decision_id>", methods=["DELETE"])
-def delete(decision_id):
-    try:
-        client = get_client()
-        client.delete_decision(decision_id)
+        await client.delete_decision(decision_id)
     except Exception:
         pass
 
     # Return updated table partial for HTMX
     decisions = []
     try:
-        client = get_client()
-        decisions = client.get_decisions()
+        decisions = await client.get_decisions()
     except Exception:
         pass
 
-    return render_template("partials/decisions_table.html", decisions=decisions)
+    return templates.TemplateResponse(
+        "partials/decisions_table.html",
+        {"request": request, "decisions": decisions},
+    )
 
 
-@bp.route("/partials/table")
-def partial_table():
+@router.get("/partials/table")
+async def partial_table(request: Request, search: str = Query(default="")):
     """HTMX partial for the decisions table."""
     decisions = []
-    search = request.args.get("search", "").strip()
+    search = search.strip()
+
+    client = CrowdSecClient(get_http_client())
 
     try:
-        client = get_client()
-        decisions = client.get_decisions()
+        decisions = await client.get_decisions()
         if search:
             search_lower = search.lower()
             decisions = [
@@ -118,4 +144,7 @@ def partial_table():
     except Exception:
         pass
 
-    return render_template("partials/decisions_table.html", decisions=decisions)
+    return templates.TemplateResponse(
+        "partials/decisions_table.html",
+        {"request": request, "decisions": decisions},
+    )

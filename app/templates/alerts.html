@@ -4,23 +4,20 @@
 {% block content %}
 <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-white">Alerts</h2>
-        <span class="text-sm text-cs-muted">{{ total }} alerts</span>
+        <h2 class="text-2xl font-bold">Alerts</h2>
+        <span class="text-sm text-base-content/60">{{ total }} alerts</span>
     </div>
 
     {% if error %}
-    <div class="px-4 py-3 rounded-lg bg-cs-danger/20 text-red-300 border border-cs-danger/30 text-sm">
-        {{ error }}
-    </div>
+    <div class="alert alert-error text-sm">{{ error }}</div>
     {% endif %}
 
     <!-- Scenario Filter -->
     <div class="flex gap-3 items-center">
-        <form method="GET" action="{{ url_for('alerts.index') }}" class="flex gap-2 items-center">
-            <label class="text-sm text-cs-muted">Filter by scenario:</label>
+        <form method="GET" action="/alerts/" class="flex gap-2 items-center">
+            <label class="text-sm text-base-content/60">Filter by scenario:</label>
             <select name="scenario" onchange="this.form.submit()"
-                    class="px-3 py-2 bg-cs-card border border-cs-border rounded-lg text-white text-sm
-                           focus:outline-none focus:border-cs-accent">
+                    class="select select-bordered select-sm">
                 <option value="">All scenarios</option>
                 {% for s in all_scenarios %}
                 <option value="{{ s }}" {% if s == scenario_filter %}selected{% endif %}>
@@ -29,82 +26,79 @@
                 {% endfor %}
             </select>
             {% if scenario_filter %}
-            <a href="{{ url_for('alerts.index') }}"
-               class="px-3 py-2 bg-cs-border hover:bg-cs-muted/30 text-white rounded-lg text-xs font-medium transition-colors">
-                Clear
-            </a>
+            <a href="/alerts/" class="btn btn-ghost btn-xs">Clear</a>
             {% endif %}
         </form>
     </div>
 
     <!-- Alerts Table -->
-    <div class="bg-cs-card rounded-xl border border-cs-border overflow-hidden">
+    <div class="card bg-base-200 shadow-sm">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="table table-zebra">
                 <thead>
-                    <tr class="text-cs-muted text-left border-b border-cs-border">
-                        <th class="px-5 py-3 font-medium w-8"></th>
-                        <th class="px-5 py-3 font-medium">Source IP</th>
-                        <th class="px-5 py-3 font-medium">Scenario</th>
-                        <th class="px-5 py-3 font-medium">Country</th>
-                        <th class="px-5 py-3 font-medium">AS</th>
-                        <th class="px-5 py-3 font-medium">Decisions</th>
-                        <th class="px-5 py-3 font-medium">Time</th>
+                    <tr>
+                        <th class="w-8"></th>
+                        <th>Source IP</th>
+                        <th>Scenario</th>
+                        <th>Country</th>
+                        <th>AS</th>
+                        <th>Decisions</th>
+                        <th>Time</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-cs-border">
+                <tbody>
                     {% for alert in alerts %}
-                    <tr class="hover:bg-white/5 transition-colors cursor-pointer"
-                        hx-get="{{ url_for('alerts.detail', alert_id=alert.id) }}"
+                    <tr class="hover cursor-pointer"
+                        hx-get="/alerts/detail/{{ alert.id }}"
                         hx-target="#alert-detail-{{ alert.id }}"
                         hx-swap="innerHTML"
                         onclick="document.getElementById('alert-detail-{{ alert.id }}').classList.toggle('hidden')">
-                        <td class="px-5 py-3 text-cs-muted">
+                        <td class="text-base-content/60">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </td>
-                        <td class="px-5 py-3 font-mono text-white">
+                        <td class="font-mono">
                             {{ alert.source.value if alert.source else 'N/A' }}
                         </td>
-                        <td class="px-5 py-3 text-cs-muted" title="{{ alert.scenario }}">
+                        <td class="text-base-content/60" title="{{ alert.scenario }}">
                             {{ alert.scenario.split('/')[-1] if alert.scenario and '/' in alert.scenario else alert.scenario }}
                         </td>
-                        <td class="px-5 py-3 text-cs-muted">
+                        <td class="text-base-content/60">
                             {{ alert.source.cn if alert.source and alert.source.cn else '??' }}
                         </td>
-                        <td class="px-5 py-3 text-cs-muted text-xs">
+                        <td class="text-base-content/60 text-xs">
                             {% if alert.source and alert.source.as_name %}
                                 {{ alert.source.as_number }} {{ alert.source.as_name }}
                             {% else %}
                                 --
                             {% endif %}
                         </td>
-                        <td class="px-5 py-3">
+                        <td>
                             {% if alert.decisions %}
                                 {% for d in alert.decisions %}
-                                <span class="px-2 py-0.5 rounded text-xs font-medium
-                                    {% if d.type == 'ban' %}bg-cs-danger/20 text-red-300
-                                    {% else %}bg-cs-warn/20 text-yellow-300{% endif %}">
+                                <span class="badge badge-sm
+                                    {% if d.type == 'ban' %}badge-error
+                                    {% else %}badge-warning{% endif %}">
                                     {{ d.type }}
                                 </span>
                                 {% endfor %}
                             {% else %}
-                                <span class="text-cs-muted text-xs">--</span>
+                                <span class="text-base-content/60 text-xs">--</span>
                             {% endif %}
                         </td>
-                        <td class="px-5 py-3 text-cs-muted text-xs">
+                        <td class="text-base-content/60 text-xs">
                             {{ alert.created_at[:19].replace('T', ' ') if alert.created_at else '' }}
                         </td>
                     </tr>
                     <tr id="alert-detail-{{ alert.id }}" class="hidden">
-                        <td colspan="7" class="px-5 py-4 bg-cs-bg/50">
-                            <div class="text-cs-muted text-xs">Click to load details...</div>
+                        <td colspan="7" class="bg-base-300/50 px-5 py-4">
+                            <div class="text-base-content/60 text-xs">Click to load details...</div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="px-5 py-8 text-center text-cs-muted">No alerts found</td>
+                        <td colspan="7" class="text-center text-base-content/60 py-8">No alerts found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -115,28 +109,23 @@
     <!-- Pagination -->
     {% if total_pages > 1 %}
     <div class="flex items-center justify-between">
-        <span class="text-xs text-cs-muted">
+        <span class="text-xs text-base-content/60">
             Page {{ page }} of {{ total_pages }} ({{ total }} total)
         </span>
-        <div class="flex items-center gap-2">
+        <div class="join">
             {% if page > 1 %}
-            <a href="{{ url_for('alerts.index', page=page-1, scenario=scenario_filter) }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-medium bg-cs-card text-cs-muted hover:text-white border border-cs-border transition-colors">
-                Previous
-            </a>
+            <a href="/alerts/?page={{ page - 1 }}&scenario={{ scenario_filter }}"
+               class="join-item btn btn-sm">Previous</a>
             {% endif %}
             {% for p in range(1, total_pages + 1) %}
-            <a href="{{ url_for('alerts.index', page=p, scenario=scenario_filter) }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-                      {% if p == page %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+            <a href="/alerts/?page={{ p }}&scenario={{ scenario_filter }}"
+               class="join-item btn btn-sm {% if p == page %}btn-primary{% endif %}">
                 {{ p }}
             </a>
             {% endfor %}
             {% if page < total_pages %}
-            <a href="{{ url_for('alerts.index', page=page+1, scenario=scenario_filter) }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-medium bg-cs-card text-cs-muted hover:text-white border border-cs-border transition-colors">
-                Next
-            </a>
+            <a href="/alerts/?page={{ page + 1 }}&scenario={{ scenario_filter }}"
+               class="join-item btn btn-sm">Next</a>
             {% endif %}
         </div>
     </div>

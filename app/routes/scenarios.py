@@ -1,75 +1,74 @@
-from flask import Blueprint, render_template, request
+from fastapi import APIRouter, Request, Form
+from fastapi.responses import HTMLResponse
 
 from app.crowdsec_scenarios import get_all_with_status, get_scenario_by_id, deploy, undeploy
+from app.deps import templates
 
-bp = Blueprint("scenarios", __name__, url_prefix="/scenarios")
+router = APIRouter(prefix="/scenarios")
 
 
-@bp.route("/")
-def index():
+@router.get("/")
+async def index(request: Request):
     scenarios = get_all_with_status()
     deployed_count = sum(1 for s in scenarios if s["deployed"])
-    return render_template(
+    return templates.TemplateResponse(
         "scenarios.html",
-        scenarios=scenarios,
-        deployed_count=deployed_count,
+        {
+            "request": request,
+            "scenarios": scenarios,
+            "deployed_count": deployed_count,
+        },
     )
 
 
-@bp.route("/deploy", methods=["POST"])
-def deploy_scenario():
+@router.post("/deploy")
+async def deploy_scenario(id: str = Form(default="")):
     """HTMX endpoint: deploy a scenario."""
-    scenario_id = request.form.get("id", "")
-    scenario = get_scenario_by_id(scenario_id)
+    scenario = get_scenario_by_id(id)
     if not scenario:
-        return '<span class="text-red-400 text-xs">Scenario not found</span>', 404
+        return HTMLResponse('<span class="text-error text-xs">Scenario not found</span>', status_code=404)
 
     try:
         deploy(scenario)
-        return f'''<div class="flex items-center gap-3">
-            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-cs-success/20 text-green-300 border border-cs-success/30">
-                Active
-            </span>
-            <button hx-post="{ request.url_root.rstrip('/') }/scenarios/undeploy"
-                    hx-vals='{{"id": "{scenario_id}"}}'
-                    hx-target="#scenario-status-{scenario_id}"
+        return HTMLResponse(f'''<div class="flex items-center gap-3">
+            <span class="badge badge-success">Active</span>
+            <button hx-post="/scenarios/undeploy"
+                    hx-vals='{{"id": "{id}"}}'
+                    hx-target="#scenario-status-{id}"
                     hx-swap="innerHTML"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-cs-border hover:bg-cs-muted/30 text-white transition-colors">
+                    class="btn btn-ghost btn-xs">
                 Undeploy
             </button>
-        </div>'''
+        </div>''')
     except Exception as e:
-        return f'<span class="text-red-400 text-xs">Error: {e}</span>', 500
+        return HTMLResponse(f'<span class="text-error text-xs">Error: {e}</span>', status_code=500)
 
 
-@bp.route("/undeploy", methods=["POST"])
-def undeploy_scenario():
+@router.post("/undeploy")
+async def undeploy_scenario(id: str = Form(default="")):
     """HTMX endpoint: undeploy a scenario."""
-    scenario_id = request.form.get("id", "")
-    scenario = get_scenario_by_id(scenario_id)
+    scenario = get_scenario_by_id(id)
     if not scenario:
-        return '<span class="text-red-400 text-xs">Scenario not found</span>', 404
+        return HTMLResponse('<span class="text-error text-xs">Scenario not found</span>', status_code=404)
 
     try:
         undeploy(scenario)
-        return f'''<div class="flex items-center gap-3">
-            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-cs-border text-cs-muted">
-                Not deployed
-            </span>
-            <button hx-post="{ request.url_root.rstrip('/') }/scenarios/deploy"
-                    hx-vals='{{"id": "{scenario_id}"}}'
-                    hx-target="#scenario-status-{scenario_id}"
+        return HTMLResponse(f'''<div class="flex items-center gap-3">
+            <span class="badge badge-ghost">Not deployed</span>
+            <button hx-post="/scenarios/deploy"
+                    hx-vals='{{"id": "{id}"}}'
+                    hx-target="#scenario-status-{id}"
                     hx-swap="innerHTML"
-                    class="px-3 py-1.5 text-xs font-medium rounded-lg bg-cs-accent hover:bg-blue-600 text-white transition-colors">
+                    class="btn btn-primary btn-xs">
                 Deploy
             </button>
-        </div>'''
+        </div>''')
     except Exception as e:
-        return f'<span class="text-red-400 text-xs">Error: {e}</span>', 500
+        return HTMLResponse(f'<span class="text-error text-xs">Error: {e}</span>', status_code=500)
 
 
-@bp.route("/deploy-all", methods=["POST"])
-def deploy_all():
+@router.post("/deploy-all")
+async def deploy_all():
     """HTMX endpoint: deploy all scenarios at once."""
     scenarios = get_all_with_status()
     deployed = 0
@@ -83,10 +82,9 @@ def deploy_all():
                 errors += 1
 
     error_text = f" {errors} failed." if errors else ""
-    return f'''<span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                     bg-cs-success/20 text-green-300 border border-cs-success/30 text-sm font-medium">
+    return HTMLResponse(f'''<div class="alert alert-success">
                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                  </svg>
                  Deployed {deployed} scenarios.{error_text} Refresh page to see updated status.
-               </span>'''
+               </div>''')
