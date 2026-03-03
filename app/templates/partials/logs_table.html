@@ -36,7 +36,21 @@
                     </td>
                     <td class="px-4 py-2 text-cs-muted whitespace-nowrap text-xs">{{ entry.timestamp }}</td>
                     <td class="px-4 py-2 text-cs-accent whitespace-nowrap text-xs">{{ entry.host }}</td>
-                    <td class="px-4 py-2 whitespace-nowrap text-xs font-mono">{{ entry.remote_addr }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-xs font-mono">
+                        <span class="inline-flex items-center gap-1.5">
+                            {{ entry.remote_addr }}
+                            {% if entry.remote_addr in banned_ips %}
+                            <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-cs-danger/20 text-red-400 text-[10px] font-semibold uppercase"
+                                  title="This IP is currently banned in CrowdSec">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                                Banned
+                            </span>
+                            {% endif %}
+                        </span>
+                    </td>
                     <td class="px-4 py-2 text-xs max-w-md truncate" title="{{ entry.request }}">
                         {% if entry.threat %}
                         <div class="flex items-center gap-2">

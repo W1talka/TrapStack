@@ -45,8 +45,23 @@ def _get_hosts_from_log(log_path, max_lines=5000):
     return sorted(hosts)
 
 
-def _tail_log(log_path, host_filter=None, limit=200):
-    """Read recent log lines, optionally filtered by host."""
+def _get_status_codes_from_log(log_path, max_lines=5000):
+    """Scan recent log lines to extract unique HTTP status codes."""
+    codes = set()
+    try:
+        with open(log_path) as f:
+            lines = f.readlines()
+        for line in lines[-max_lines:]:
+            parsed = _parse_line(line)
+            if parsed:
+                codes.add(parsed["status"])
+    except (FileNotFoundError, PermissionError):
+        pass
+    return sorted(codes)
+
+
+def _tail_log(log_path, host_filter=None, status_filter=None, limit=200):
+    """Read recent log lines, optionally filtered by host and/or status code."""
     entries = []
     try:
         with open(log_path) as f:
@@ -59,6 +74,8 @@ def _tail_log(log_path, host_filter=None, limit=200):
         if not parsed:
             continue
         if host_filter and parsed["host"] != host_filter:
+            continue
+        if status_filter and parsed["status"] != status_filter:
             continue
         # Skip healthchecks
         if "NPMplus/healthcheck" in parsed.get("user_agent", ""):
@@ -100,10 +117,12 @@ def index():
     error_log_file = os.path.join(log_dir, "error.log")
 
     host_filter = request.args.get("host", "")
+    status_filter = request.args.get("status", "")
     log_type = request.args.get("type", "access")
     limit = min(int(request.args.get("limit", 200)), 1000)
 
     hosts = _get_hosts_from_log(log_file)
+    status_codes = _get_status_codes_from_log(log_file)
     entries = []
     error_lines = []
     error = None
@@ -116,7 +135,8 @@ def index():
     elif log_type == "error":
         error_lines = _tail_error_log(error_log_file, limit=limit)
     else:
-        entries = _tail_log(log_file, host_filter=host_filter or None, limit=limit)
+        entries = _tail_log(log_file, host_filter=host_filter or None,
+                           status_filter=status_filter or None, limit=limit)
         entries = classify_entries(entries)
         banned_ips = _get_banned_ips()
 
@@ -140,9 +160,11 @@ def index():
     return render_template(
         "logs.html",
         hosts=hosts,
+        status_codes=status_codes,
         entries=entries,
         error_lines=error_lines,
         selected_host=host_filter,
+        selected_status=status_filter,
         log_type=log_type,
         limit=limit,
         error=error,

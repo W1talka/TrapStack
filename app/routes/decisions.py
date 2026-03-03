@@ -13,11 +13,20 @@ def index():
     error = None
     decisions = []
     search = request.args.get("search", "").strip()
+    origin_filter = request.args.get("origin", "").strip()
     page = max(1, int(request.args.get("page", 1)))
+    all_origins = []
 
     try:
         client = get_client()
         decisions = client.get_decisions()
+
+        # Extract unique origins for filter chips
+        all_origins = sorted(set(d.get("origin", "") for d in decisions if d.get("origin")))
+
+        # Apply origin filter
+        if origin_filter:
+            decisions = [d for d in decisions if d.get("origin") == origin_filter]
 
         if search:
             search_lower = search.lower()
@@ -46,6 +55,8 @@ def index():
         error=error,
         page=page,
         total_pages=total_pages,
+        origins=all_origins,
+        selected_origin=origin_filter,
     )
 
 

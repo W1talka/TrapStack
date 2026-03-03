@@ -27,20 +27,45 @@
 
     <!-- Host filter -->
     {% if log_type == 'access' %}
-    <div class="flex flex-wrap gap-2">
-        <a href="{{ url_for('logs.index', type='access') }}"
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-cs-muted font-medium mr-1">Host:</span>
+        <a href="{{ url_for('logs.index', type='access', status=selected_status) }}"
            class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
                   {% if not selected_host %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
             All Hosts
         </a>
         {% for host in hosts %}
-        <a href="{{ url_for('logs.index', type='access', host=host) }}"
+        <a href="{{ url_for('logs.index', type='access', host=host, status=selected_status) }}"
            class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
                   {% if selected_host == host %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
             {{ host }}
         </a>
         {% endfor %}
     </div>
+
+    <!-- Status code filter -->
+    {% if status_codes %}
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-cs-muted font-medium mr-1">Status:</span>
+        <a href="{{ url_for('logs.index', type='access', host=selected_host) }}"
+           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
+                  {% if not selected_status %}bg-cs-accent text-white{% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+            All
+        </a>
+        {% for code in status_codes %}
+        <a href="{{ url_for('logs.index', type='access', host=selected_host, status=code) }}"
+           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors
+                  {% if selected_status == code %}
+                      {% if code|int >= 500 %}bg-cs-danger text-white
+                      {% elif code|int >= 400 %}bg-cs-warn text-white
+                      {% elif code|int >= 300 %}bg-cs-accent text-white
+                      {% else %}bg-cs-success text-white{% endif %}
+                  {% else %}bg-cs-card text-cs-muted hover:text-white border border-cs-border{% endif %}">
+            {{ code }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <!-- Threat summary bar -->
     {% if threat_count > 0 %}
