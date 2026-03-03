@@ -41,51 +41,48 @@
         </a>
         {% endfor %}
     </div>
+
+    <!-- Threat summary bar -->
+    {% if threat_count > 0 %}
+    <div class="flex items-center justify-between bg-cs-danger/10 border border-cs-danger/30 rounded-xl px-5 py-3">
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <span class="text-sm text-red-300">
+                <strong>{{ threat_count }}</strong> threats detected
+            </span>
+        </div>
+        <div id="ban-all-result">
+            <button hx-post="{{ url_for('logs.ban_all_threats') }}"
+                    hx-target="#ban-all-result"
+                    hx-swap="innerHTML"
+                    hx-vals='{"threats": {{ bulk_threats_json|tojson }}}'
+                    hx-confirm="Ban all detected threat IPs?"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg bg-cs-danger hover:bg-red-600 text-white transition-colors inline-flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                </svg>
+                Ban All Threats
+            </button>
+        </div>
+    </div>
+    {% endif %}
     {% endif %}
 
     <!-- Access log table -->
     {% if log_type == 'access' %}
-    <div class="bg-cs-card rounded-xl border border-cs-border overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-cs-border text-cs-muted text-left">
-                        <th class="px-4 py-3 font-medium">Time</th>
-                        <th class="px-4 py-3 font-medium">Host</th>
-                        <th class="px-4 py-3 font-medium">Remote IP</th>
-                        <th class="px-4 py-3 font-medium">Request</th>
-                        <th class="px-4 py-3 font-medium">Status</th>
-                        <th class="px-4 py-3 font-medium">User Agent</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-cs-border">
-                    {% for entry in entries %}
-                    <tr class="hover:bg-white/5">
-                        <td class="px-4 py-2 text-cs-muted whitespace-nowrap text-xs">{{ entry.timestamp }}</td>
-                        <td class="px-4 py-2 text-cs-accent whitespace-nowrap text-xs">{{ entry.host }}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-xs font-mono">{{ entry.remote_addr }}</td>
-                        <td class="px-4 py-2 text-xs max-w-md truncate" title="{{ entry.request }}">{{ entry.request }}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-xs">
-                            <span class="px-2 py-0.5 rounded-full font-medium
-                                {% if entry.status|int >= 500 %}bg-cs-danger/20 text-red-300
-                                {% elif entry.status|int >= 400 %}bg-cs-warn/20 text-yellow-300
-                                {% elif entry.status|int >= 300 %}bg-cs-accent/20 text-blue-300
-                                {% else %}bg-cs-success/20 text-green-300{% endif %}">
-                                {{ entry.status }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-2 text-cs-muted text-xs max-w-xs truncate" title="{{ entry.user_agent }}">{{ entry.user_agent }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-cs-muted">No log entries found</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div id="logs-table">
+        {% include "partials/logs_table.html" %}
     </div>
-    <div class="text-xs text-cs-muted">Showing {{ entries|length }} most recent entries (limit: {{ limit }})</div>
+    <div class="flex items-center justify-between text-xs text-cs-muted">
+        <span>Showing {{ entries|length }} most recent entries (limit: {{ limit }})</span>
+        {% if threat_count > 0 %}
+        <span class="text-red-400">{{ threat_count }} threats detected</span>
+        {% endif %}
+    </div>
 
     {% else %}
     <!-- Error log -->

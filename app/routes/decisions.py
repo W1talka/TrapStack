@@ -5,11 +5,15 @@ from app.crowdsec_client import get_client
 bp = Blueprint("decisions", __name__, url_prefix="/decisions")
 
 
+PER_PAGE = 100
+
+
 @bp.route("/")
 def index():
     error = None
     decisions = []
     search = request.args.get("search", "").strip()
+    page = max(1, int(request.args.get("page", 1)))
 
     try:
         client = get_client()
@@ -28,7 +32,21 @@ def index():
         error = f"Failed to fetch decisions: {e}"
         current_app.logger.error(error)
 
-    return render_template("decisions.html", decisions=decisions, search=search, error=error)
+    total = len(decisions)
+    total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
+    page = min(page, total_pages)
+    start = (page - 1) * PER_PAGE
+    paginated = decisions[start:start + PER_PAGE]
+
+    return render_template(
+        "decisions.html",
+        decisions=paginated,
+        total=total,
+        search=search,
+        error=error,
+        page=page,
+        total_pages=total_pages,
+    )
 
 
 @bp.route("/add", methods=["POST"])

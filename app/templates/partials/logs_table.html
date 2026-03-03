@@ -1,0 +1,101 @@
+<div class="bg-cs-card rounded-xl border border-cs-border overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-cs-border text-cs-muted text-left">
+                    <th class="px-2 py-3 font-medium w-6"></th>
+                    <th class="px-4 py-3 font-medium">Time</th>
+                    <th class="px-4 py-3 font-medium">Host</th>
+                    <th class="px-4 py-3 font-medium">Remote IP</th>
+                    <th class="px-4 py-3 font-medium">Request</th>
+                    <th class="px-4 py-3 font-medium">Status</th>
+                    <th class="px-4 py-3 font-medium">User Agent</th>
+                    <th class="px-4 py-3 font-medium w-32">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-cs-border">
+                {% for entry in entries %}
+                <tr class="hover:bg-white/5
+                    {% if entry.threat %}
+                        {% if entry.threat.severity == 'critical' %}bg-red-950/30
+                        {% elif entry.threat.severity == 'high' %}bg-red-950/20
+                        {% elif entry.threat.severity == 'medium' %}bg-yellow-950/20
+                        {% else %}bg-orange-950/10{% endif %}
+                    {% endif %}">
+                    <!-- Threat indicator -->
+                    <td class="px-2 py-2 text-center">
+                        {% if entry.threat %}
+                        <span title="{{ entry.threat.label }} ({{ entry.threat.severity }})"
+                              class="inline-block w-2.5 h-2.5 rounded-full
+                                {% if entry.threat.severity == 'critical' %}bg-red-500 animate-pulse
+                                {% elif entry.threat.severity == 'high' %}bg-orange-500
+                                {% elif entry.threat.severity == 'medium' %}bg-yellow-500
+                                {% else %}bg-blue-400{% endif %}">
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-cs-muted whitespace-nowrap text-xs">{{ entry.timestamp }}</td>
+                    <td class="px-4 py-2 text-cs-accent whitespace-nowrap text-xs">{{ entry.host }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-xs font-mono">{{ entry.remote_addr }}</td>
+                    <td class="px-4 py-2 text-xs max-w-md truncate" title="{{ entry.request }}">
+                        {% if entry.threat %}
+                        <div class="flex items-center gap-2">
+                            <span class="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase
+                                {% if entry.threat.severity == 'critical' %}bg-red-500/20 text-red-300
+                                {% elif entry.threat.severity == 'high' %}bg-orange-500/20 text-orange-300
+                                {% elif entry.threat.severity == 'medium' %}bg-yellow-500/20 text-yellow-300
+                                {% else %}bg-blue-500/20 text-blue-300{% endif %}">
+                                {{ entry.threat.label }}
+                            </span>
+                            <span class="truncate">{{ entry.request }}</span>
+                        </div>
+                        {% else %}
+                        {{ entry.request }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 whitespace-nowrap text-xs">
+                        <span class="px-2 py-0.5 rounded-full font-medium
+                            {% if entry.status|int >= 500 %}bg-cs-danger/20 text-red-300
+                            {% elif entry.status|int >= 400 %}bg-cs-warn/20 text-yellow-300
+                            {% elif entry.status|int >= 300 %}bg-cs-accent/20 text-blue-300
+                            {% else %}bg-cs-success/20 text-green-300{% endif %}">
+                            {{ entry.status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-cs-muted text-xs max-w-xs truncate" title="{{ entry.user_agent }}">{{ entry.user_agent }}</td>
+                    <!-- Action: ban button or banned badge -->
+                    <td class="px-4 py-2 whitespace-nowrap" id="ban-action-{{ loop.index }}">
+                        {% if entry.threat %}
+                            {% if entry.remote_addr in banned_ips %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cs-danger/20 text-red-300 text-xs font-medium">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                                Banned
+                            </span>
+                            {% else %}
+                            <button hx-post="{{ url_for('logs.ban_from_log') }}"
+                                    hx-vals='{"ip": "{{ entry.remote_addr }}", "scenario": "{{ entry.threat.scenario }}", "duration": "{{ entry.threat.ban_duration }}", "label": "{{ entry.threat.label }}"}'
+                                    hx-target="#ban-action-{{ loop.index }}"
+                                    hx-swap="innerHTML"
+                                    class="px-2.5 py-1 text-xs font-medium rounded bg-cs-danger hover:bg-red-600 text-white transition-colors inline-flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                                Ban ({{ entry.threat.ban_duration }})
+                            </button>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="px-4 py-8 text-center text-cs-muted">No log entries found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

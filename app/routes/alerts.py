@@ -5,15 +5,19 @@ from app.crowdsec_client import get_client
 bp = Blueprint("alerts", __name__, url_prefix="/alerts")
 
 
+PER_PAGE = 100
+
+
 @bp.route("/")
 def index():
     error = None
     alerts = []
     scenario_filter = request.args.get("scenario", "").strip()
+    page = max(1, int(request.args.get("page", 1)))
 
     try:
         client = get_client()
-        alerts = client.get_alerts(limit=200)
+        alerts = client.get_alerts(limit=500)
 
         # Extract unique scenarios for filter dropdown
         all_scenarios = sorted(set(a.get("scenario", "") for a in alerts if a.get("scenario")))
@@ -26,12 +30,21 @@ def index():
         current_app.logger.error(error)
         all_scenarios = []
 
+    total = len(alerts)
+    total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
+    page = min(page, total_pages)
+    start = (page - 1) * PER_PAGE
+    paginated = alerts[start:start + PER_PAGE]
+
     return render_template(
         "alerts.html",
-        alerts=alerts,
+        alerts=paginated,
+        total=total,
         all_scenarios=all_scenarios,
         scenario_filter=scenario_filter,
         error=error,
+        page=page,
+        total_pages=total_pages,
     )
 
 

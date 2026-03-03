@@ -17,12 +17,16 @@ def index():
     try:
         client = get_client()
         decisions = client.get_decisions()
-        alerts = client.get_alerts(limit=100)
-
         stats["bans"] = len(decisions)
+    except Exception as e:
+        error = f"Failed to connect to CrowdSec LAPI: {e}"
+        current_app.logger.error(error)
+
+    try:
+        client = get_client()
+        alerts = client.get_alerts(limit=100)
         stats["alerts_total"] = len(alerts)
 
-        # Top scenario from alerts
         scenarios = Counter()
         countries = Counter()
         for alert in alerts:
@@ -37,10 +41,8 @@ def index():
             stats["top_scenario"] = scenarios.most_common(1)[0][0]
         if countries:
             stats["top_country"] = countries.most_common(1)[0][0]
-
     except Exception as e:
-        error = f"Failed to connect to CrowdSec LAPI: {e}"
-        current_app.logger.error(error)
+        current_app.logger.warning(f"Could not fetch alerts: {e}")
 
     return render_template(
         "dashboard.html",
@@ -62,9 +64,13 @@ def partial_stats():
     try:
         client = get_client()
         decisions = client.get_decisions()
-        alerts = client.get_alerts(limit=100)
-
         stats["bans"] = len(decisions)
+    except Exception as e:
+        error = str(e)
+
+    try:
+        client = get_client()
+        alerts = client.get_alerts(limit=100)
         stats["alerts_total"] = len(alerts)
 
         scenarios = Counter()
@@ -79,9 +85,8 @@ def partial_stats():
             stats["top_scenario"] = scenarios.most_common(1)[0][0]
         if countries:
             stats["top_country"] = countries.most_common(1)[0][0]
-
-    except Exception as e:
-        error = str(e)
+    except Exception:
+        pass
 
     return render_template(
         "partials/dashboard_stats.html",
