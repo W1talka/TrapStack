@@ -1,0 +1,13 @@
+services:
+  crowdsec-gui:
+    container_name: crowdsec-gui
+    build: .
+    restart: always
+    network_mode: host
+    volumes:
+      - "/opt/crowdsec/conf:/opt/crowdsec/conf"
+      - "/opt/npmplus/nginx/logs:/opt/npmplus/nginx/logs:ro"
+    env_file:
+      - .env
+    environment:
+      - "TZ=America/New_York"

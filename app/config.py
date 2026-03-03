@@ -1,0 +1,9 @@
+import os
+
+
+class Config:
+    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
+    CROWDSEC_LAPI_URL = os.environ.get("CROWDSEC_LAPI_URL", "http://127.0.0.1:8078")
+    CROWDSEC_API_KEY = os.environ.get("CROWDSEC_API_KEY", "")
+    CROWDSEC_CONF_DIR = os.environ.get("CROWDSEC_CONF_DIR", "/opt/crowdsec/conf")
+    NPMPLUS_LOG_DIR = os.environ.get("NPMPLUS_LOG_DIR", "/opt/npmplus/nginx/logs")

@@ -1,0 +1,63 @@
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-cs-card rounded-xl border border-cs-border p-5">
+        <div class="text-cs-muted text-sm mb-1">Active Bans</div>
+        <div class="text-3xl font-bold text-cs-danger">{{ stats.bans }}</div>
+    </div>
+    <div class="bg-cs-card rounded-xl border border-cs-border p-5">
+        <div class="text-cs-muted text-sm mb-1">Recent Alerts</div>
+        <div class="text-3xl font-bold text-cs-warn">{{ stats.alerts_total }}</div>
+    </div>
+    <div class="bg-cs-card rounded-xl border border-cs-border p-5">
+        <div class="text-cs-muted text-sm mb-1">Top Scenario</div>
+        <div class="text-lg font-semibold text-white truncate" title="{{ stats.top_scenario }}">
+            {{ stats.top_scenario.split('/')[-1] if '/' in stats.top_scenario else stats.top_scenario }}
+        </div>
+    </div>
+    <div class="bg-cs-card rounded-xl border border-cs-border p-5">
+        <div class="text-cs-muted text-sm mb-1">Top Country</div>
+        <div class="text-3xl font-bold text-cs-accent">{{ stats.top_country }}</div>
+    </div>
+</div>
+
+<!-- Recent Decisions Table -->
+<div class="bg-cs-card rounded-xl border border-cs-border">
+    <div class="px-5 py-4 border-b border-cs-border">
+        <h3 class="text-lg font-semibold text-white">Active Decisions</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-cs-muted text-left border-b border-cs-border">
+                    <th class="px-5 py-3 font-medium">IP</th>
+                    <th class="px-5 py-3 font-medium">Scenario</th>
+                    <th class="px-5 py-3 font-medium">Action</th>
+                    <th class="px-5 py-3 font-medium">Origin</th>
+                    <th class="px-5 py-3 font-medium">Expiry</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-cs-border">
+                {% for d in decisions %}
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="px-5 py-3 font-mono text-white">{{ d.value }}</td>
+                    <td class="px-5 py-3 text-cs-muted">{{ d.scenario.split('/')[-1] if d.scenario and '/' in d.scenario else d.scenario }}</td>
+                    <td class="px-5 py-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium
+                            {% if d.type == 'ban' %}bg-cs-danger/20 text-red-300
+                            {% elif d.type == 'captcha' %}bg-cs-warn/20 text-yellow-300
+                            {% else %}bg-cs-accent/20 text-blue-300{% endif %}">
+                            {{ d.type }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-cs-muted">{{ d.origin }}</td>
+                    <td class="px-5 py-3 text-cs-muted">{{ d.duration }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-5 py-8 text-center text-cs-muted">No active decisions</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

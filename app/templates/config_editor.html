@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Config Editor - CrowdSec GUI{% endblock %}
+
+{% block content %}
+<div class="p-6 flex gap-6 h-[calc(100vh-2rem)]">
+    <!-- File Browser Sidebar -->
+    <div class="w-72 shrink-0 bg-cs-card rounded-xl border border-cs-border overflow-y-auto">
+        <div class="px-4 py-3 border-b border-cs-border">
+            <h3 class="text-sm font-semibold text-white">Config Files</h3>
+        </div>
+        <div class="p-2 space-y-3">
+            {% for group_name, files in file_groups.items() %}
+            <div>
+                <div class="px-2 py-1 text-xs font-medium text-cs-muted uppercase tracking-wider">
+                    {{ group_name }}
+                </div>
+                {% for file in files %}
+                <a href="{{ url_for('config_editor.index', file=file.path) }}"
+                   class="block px-3 py-2 rounded-lg text-sm transition-colors
+                          {% if file.path == selected %}bg-cs-accent/20 text-cs-accent{% else %}text-cs-muted hover:text-white hover:bg-white/5{% endif %}">
+                    {{ file.name }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="flex-1 flex flex-col bg-cs-card rounded-xl border border-cs-border overflow-hidden">
+        {% if selected %}
+        <div class="px-5 py-3 border-b border-cs-border flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-white">{{ selected }}</h3>
+            </div>
+            <form method="POST" action="{{ url_for('config_editor.save') }}" id="editor-form">
+                <input type="hidden" name="file" value="{{ selected }}">
+                <button type="submit"
+                        class="px-4 py-1.5 bg-cs-success hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors">
+                    Save
+                </button>
+            </form>
+        </div>
+        <div class="flex-1 p-0">
+            <textarea name="content" form="editor-form"
+                      spellcheck="false"
+                      class="w-full h-full p-5 bg-cs-bg text-white font-mono text-sm resize-none
+                             focus:outline-none border-none"
+                      style="tab-size: 2;">{{ content }}</textarea>
+        </div>
+        {% else %}
+        <div class="flex-1 flex items-center justify-center">
+            <div class="text-center text-cs-muted">
+                <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm">Select a file from the sidebar to edit</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

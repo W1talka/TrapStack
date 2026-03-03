@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Alerts - CrowdSec GUI{% endblock %}
+
+{% block content %}
+<div class="p-6 space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-white">Alerts</h2>
+        <span class="text-sm text-cs-muted">{{ alerts|length }} alerts</span>
+    </div>
+
+    {% if error %}
+    <div class="px-4 py-3 rounded-lg bg-cs-danger/20 text-red-300 border border-cs-danger/30 text-sm">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Scenario Filter -->
+    <div class="flex gap-3 items-center">
+        <form method="GET" action="{{ url_for('alerts.index') }}" class="flex gap-2 items-center">
+            <label class="text-sm text-cs-muted">Filter by scenario:</label>
+            <select name="scenario" onchange="this.form.submit()"
+                    class="px-3 py-2 bg-cs-card border border-cs-border rounded-lg text-white text-sm
+                           focus:outline-none focus:border-cs-accent">
+                <option value="">All scenarios</option>
+                {% for s in all_scenarios %}
+                <option value="{{ s }}" {% if s == scenario_filter %}selected{% endif %}>
+                    {{ s.split('/')[-1] if '/' in s else s }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if scenario_filter %}
+            <a href="{{ url_for('alerts.index') }}"
+               class="px-3 py-2 bg-cs-border hover:bg-cs-muted/30 text-white rounded-lg text-xs font-medium transition-colors">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="bg-cs-card rounded-xl border border-cs-border overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-cs-muted text-left border-b border-cs-border">
+                        <th class="px-5 py-3 font-medium w-8"></th>
+                        <th class="px-5 py-3 font-medium">Source IP</th>
+                        <th class="px-5 py-3 font-medium">Scenario</th>
+                        <th class="px-5 py-3 font-medium">Country</th>
+                        <th class="px-5 py-3 font-medium">AS</th>
+                        <th class="px-5 py-3 font-medium">Decisions</th>
+                        <th class="px-5 py-3 font-medium">Time</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-cs-border">
+                    {% for alert in alerts %}
+                    <tr class="hover:bg-white/5 transition-colors cursor-pointer"
+                        hx-get="{{ url_for('alerts.detail', alert_id=alert.id) }}"
+                        hx-target="#alert-detail-{{ alert.id }}"
+                        hx-swap="innerHTML"
+                        onclick="document.getElementById('alert-detail-{{ alert.id }}').classList.toggle('hidden')">
+                        <td class="px-5 py-3 text-cs-muted">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </td>
+                        <td class="px-5 py-3 font-mono text-white">
+                            {{ alert.source.value if alert.source else 'N/A' }}
+                        </td>
+                        <td class="px-5 py-3 text-cs-muted" title="{{ alert.scenario }}">
+                            {{ alert.scenario.split('/')[-1] if alert.scenario and '/' in alert.scenario else alert.scenario }}
+                        </td>
+                        <td class="px-5 py-3 text-cs-muted">
+                            {{ alert.source.cn if alert.source and alert.source.cn else '??' }}
+                        </td>
+                        <td class="px-5 py-3 text-cs-muted text-xs">
+                            {% if alert.source and alert.source.as_name %}
+                                {{ alert.source.as_number }} {{ alert.source.as_name }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3">
+                            {% if alert.decisions %}
+                                {% for d in alert.decisions %}
+                                <span class="px-2 py-0.5 rounded text-xs font-medium
+                                    {% if d.type == 'ban' %}bg-cs-danger/20 text-red-300
+                                    {% else %}bg-cs-warn/20 text-yellow-300{% endif %}">
+                                    {{ d.type }}
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-cs-muted text-xs">--</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3 text-cs-muted text-xs">
+                            {{ alert.created_at[:19].replace('T', ' ') if alert.created_at else '' }}
+                        </td>
+                    </tr>
+                    <tr id="alert-detail-{{ alert.id }}" class="hidden">
+                        <td colspan="7" class="px-5 py-4 bg-cs-bg/50">
+                            <div class="text-cs-muted text-xs">Click to load details...</div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-5 py-8 text-center text-cs-muted">No alerts found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
