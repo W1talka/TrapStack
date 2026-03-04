@@ -25,6 +25,32 @@ def _get_log_dir():
     return config.NPMPLUS_LOG_DIR
 
 
+def _get_rotated_files(log_dir, basename):
+    """Return list of log files sorted by recency: basename, basename.1, basename.2, ..."""
+    files = []
+    base = os.path.join(log_dir, basename)
+    if os.path.isfile(base):
+        files.append(base)
+    i = 1
+    while True:
+        rotated = f"{base}.{i}"
+        if os.path.isfile(rotated):
+            files.append(rotated)
+            i += 1
+        else:
+            break
+    return files
+
+
+def _read_lines(path):
+    """Read all lines from a file, returning [] on error."""
+    try:
+        with open(path) as f:
+            return f.readlines()
+    except (FileNotFoundError, PermissionError):
+        return []
+
+
 def _parse_line(line):
     """Parse a single NPMPlus access log line."""
     m = LOG_PATTERN.match(line.strip())
@@ -33,74 +59,69 @@ def _parse_line(line):
     return m.groupdict()
 
 
-def _get_hosts_from_log(log_path, max_lines=5000):
-    """Scan recent log lines to extract unique hostnames."""
+def _get_hosts_from_log(log_dir, max_lines=5000):
+    """Scan recent log lines across rotated files to extract unique hostnames."""
     hosts = set()
-    try:
-        with open(log_path) as f:
-            lines = f.readlines()
-        for line in lines[-max_lines:]:
+    remaining = max_lines
+    for path in _get_rotated_files(log_dir, "access.log"):
+        lines = _read_lines(path)
+        for line in lines[-remaining:]:
             parsed = _parse_line(line)
             if parsed and parsed["host"] not in ("127.0.0.1", "127.0.0.1:81"):
                 hosts.add(parsed["host"])
-    except (FileNotFoundError, PermissionError):
-        pass
+        remaining -= len(lines)
+        if remaining <= 0:
+            break
     return sorted(hosts)
 
 
-def _get_status_codes_from_log(log_path, max_lines=5000):
-    """Scan recent log lines to extract unique HTTP status codes."""
+def _get_status_codes_from_log(log_dir, max_lines=5000):
+    """Scan recent log lines across rotated files to extract unique HTTP status codes."""
     codes = set()
-    try:
-        with open(log_path) as f:
-            lines = f.readlines()
-        for line in lines[-max_lines:]:
+    remaining = max_lines
+    for path in _get_rotated_files(log_dir, "access.log"):
+        lines = _read_lines(path)
+        for line in lines[-remaining:]:
             parsed = _parse_line(line)
             if parsed:
                 codes.add(parsed["status"])
-    except (FileNotFoundError, PermissionError):
-        pass
+        remaining -= len(lines)
+        if remaining <= 0:
+            break
     return sorted(codes)
 
 
-def _tail_log(log_path, host_filter=None, status_filter=None, limit=200):
-    """Read recent log lines, optionally filtered by host and/or status code."""
+def _tail_log(log_dir, host_filter=None, status_filter=None, limit=200):
+    """Read recent log lines across rotated files, optionally filtered."""
     entries = []
-    try:
-        with open(log_path) as f:
-            lines = f.readlines()
-    except (FileNotFoundError, PermissionError):
-        return []
-
-    for line in reversed(lines):
-        parsed = _parse_line(line)
-        if not parsed:
-            continue
-        if host_filter and parsed["host"] != host_filter:
-            continue
-        if status_filter and parsed["status"] != status_filter:
-            continue
-        # Skip healthchecks
-        if "NPMplus/healthcheck" in parsed.get("user_agent", ""):
-            continue
-        entries.append(parsed)
-        if len(entries) >= limit:
-            break
-
+    for path in _get_rotated_files(log_dir, "access.log"):
+        lines = _read_lines(path)
+        for line in reversed(lines):
+            parsed = _parse_line(line)
+            if not parsed:
+                continue
+            if host_filter and parsed["host"] != host_filter:
+                continue
+            if status_filter and parsed["status"] != status_filter:
+                continue
+            if "NPMplus/healthcheck" in parsed.get("user_agent", ""):
+                continue
+            entries.append(parsed)
+            if len(entries) >= limit:
+                return entries
     return entries
 
 
-def _tail_error_log(log_path, limit=100):
-    """Read recent error log lines."""
-    lines = []
-    try:
-        with open(log_path) as f:
-            all_lines = f.readlines()
-        lines = [l.strip() for l in all_lines[-limit:] if l.strip()]
-        lines.reverse()
-    except (FileNotFoundError, PermissionError):
-        pass
-    return lines
+def _tail_error_log(log_dir, limit=100):
+    """Read recent error log lines across rotated files."""
+    entries = []
+    for path in _get_rotated_files(log_dir, "error.log"):
+        lines = _read_lines(path)
+        cleaned = [l.strip() for l in lines if l.strip()]
+        entries = cleaned + entries
+    entries = entries[-limit:]
+    entries.reverse()
+    return entries
 
 
 async def _get_banned_ips():
@@ -122,15 +143,13 @@ async def index(
     limit: int = Query(default=200, le=1000),
 ):
     log_dir = _get_log_dir()
-    log_file = os.path.join(log_dir, "access.log")
-    error_log_file = os.path.join(log_dir, "error.log")
 
     host_filter = host
     status_filter = status
     log_type = type
 
-    hosts = _get_hosts_from_log(log_file)
-    status_codes = _get_status_codes_from_log(log_file)
+    hosts = _get_hosts_from_log(log_dir)
+    status_codes = _get_status_codes_from_log(log_dir)
     entries = []
     error_lines = []
     error = None
@@ -141,9 +160,9 @@ async def index(
     if not os.path.isdir(log_dir):
         error = f"Log directory not found: {log_dir}"
     elif log_type == "error":
-        error_lines = _tail_error_log(error_log_file, limit=limit)
+        error_lines = _tail_error_log(log_dir, limit=limit)
     else:
-        entries = _tail_log(log_file, host_filter=host_filter or None,
+        entries = _tail_log(log_dir, host_filter=host_filter or None,
                            status_filter=status_filter or None, limit=limit)
         entries = classify_entries(entries)
         banned_ips = await _get_banned_ips()

@@ -1,0 +1,10 @@
+.env
+.env*
+.git
+.gitignore
+__pycache__
+venv/
+.venv/
+.claude/
+*.pyc
+CLAUDE.md
