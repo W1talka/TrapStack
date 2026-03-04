@@ -1,147 +1,37 @@
-"""Pre-built CrowdSec scenario templates for NPMPlus attack patterns.
+"""CrowdSec scenario library — loads scenario templates from YAML files.
 
-Each scenario is a dict that can be written as YAML to the CrowdSec
-config directory. The GUI allows deploying/undeploying these.
+Scenarios live in app/scenario_library/ as individual YAML files.
+The GUI allows deploying/undeploying these to the CrowdSec config directory.
 """
 
+import glob
 import os
 
 import yaml
 
 from app import config
 
+_REQUIRED_KEYS = {"id", "filename", "severity", "description", "yaml_content"}
 
-SCENARIOS = [
-    {
-        "id": "npmplus-tls-probing",
-        "filename": "npmplus-tls-probing.yaml",
-        "severity": "high",
-        "description": "Detects IPs sending raw TLS/SSL handshakes to HTTP ports. "
-                       "This is a common scanning technique to fingerprint services.",
-        "yaml_content": {
-            "type": "leaky",
-            "name": "crowdsec/npmplus-tls-probing",
-            "description": "Ban IPs sending TLS handshakes to HTTP port",
-            "filter": (
-                'evt.Meta.service == "http" && '
-                'evt.Meta.http_status == "400" && '
-                'evt.Parsed.request contains "\\\\x16\\\\x03"'
-            ),
-            "capacity": 2,
-            "leakspeed": "30m",
-            "blackhole": "1h",
-            "labels": {"remediation": True, "service": "http", "confidence": 10},
-        },
-    },
-    {
-        "id": "npmplus-rdp-bruteforce",
-        "filename": "npmplus-rdp-bruteforce.yaml",
-        "severity": "critical",
-        "description": "Detects RDP brute force attempts sent to HTTP ports. "
-                       "Attackers send mstshash cookies to probe for RDP services.",
-        "yaml_content": {
-            "type": "leaky",
-            "name": "crowdsec/npmplus-rdp-bruteforce",
-            "description": "Ban IPs attempting RDP brute force via HTTP",
-            "filter": (
-                'evt.Meta.service == "http" && '
-                'evt.Meta.http_status == "400" && '
-                'evt.Parsed.request contains "mstshash="'
-            ),
-            "capacity": 1,
-            "leakspeed": "30m",
-            "blackhole": "1h",
-            "labels": {"remediation": True, "service": "http", "confidence": 10},
-        },
-    },
-    {
-        "id": "npmplus-path-traversal",
-        "filename": "npmplus-path-traversal.yaml",
-        "severity": "critical",
-        "description": "Detects directory traversal attacks attempting to access "
-                       "system files like /etc/passwd or execute /bin/sh.",
-        "yaml_content": {
-            "type": "leaky",
-            "name": "crowdsec/npmplus-path-traversal",
-            "description": "Ban IPs attempting path traversal attacks",
-            "filter": (
-                'evt.Meta.service == "http" && '
-                '(evt.Parsed.request contains ".%2e" || '
-                'evt.Parsed.request contains "%2e." || '
-                'evt.Parsed.request contains "/etc/passwd" || '
-                'evt.Parsed.request contains "/bin/sh")'
-            ),
-            "capacity": 1,
-            "leakspeed": "30m",
-            "blackhole": "1h",
-            "labels": {"remediation": True, "service": "http", "confidence": 10},
-        },
-    },
-    {
-        "id": "npmplus-ssh-scan",
-        "filename": "npmplus-ssh-scan.yaml",
-        "severity": "high",
-        "description": "Detects SSH protocol handshakes sent to HTTP ports. "
-                       "Automated scanners probe for SSH on non-standard ports.",
-        "yaml_content": {
-            "type": "leaky",
-            "name": "crowdsec/npmplus-ssh-scan",
-            "description": "Ban IPs sending SSH protocol to HTTP port",
-            "filter": (
-                'evt.Meta.service == "http" && '
-                'evt.Meta.http_status == "400" && '
-                'evt.Parsed.request contains "SSH-2.0-"'
-            ),
-            "capacity": 1,
-            "leakspeed": "30m",
-            "blackhole": "1h",
-            "labels": {"remediation": True, "service": "http", "confidence": 10},
-        },
-    },
-    {
-        "id": "npmplus-binary-garbage",
-        "filename": "npmplus-binary-garbage.yaml",
-        "severity": "medium",
-        "description": "Detects non-HTTP binary data sent to HTTP ports. "
-                       "Catches miscellaneous protocol probes and fuzzing attempts.",
-        "yaml_content": {
-            "type": "leaky",
-            "name": "crowdsec/npmplus-binary-garbage",
-            "description": "Ban IPs sending non-HTTP binary data",
-            "filter": (
-                'evt.Meta.service == "http" && '
-                'evt.Meta.http_status == "400" && '
-                'evt.Parsed.request contains "\\\\x"'
-            ),
-            "capacity": 3,
-            "leakspeed": "30m",
-            "blackhole": "1h",
-            "labels": {"remediation": True, "service": "http", "confidence": 8},
-        },
-    },
-    {
-        "id": "npmplus-generic-probe",
-        "filename": "npmplus-generic-probe.yaml",
-        "severity": "low",
-        "description": "Detects IPs probing the server directly by IP with no valid "
-                       "hostname. Catches basic reconnaissance scans.",
-        "yaml_content": {
-            "type": "leaky",
-            "name": "crowdsec/npmplus-generic-probe",
-            "description": "Ban IPs probing server with no valid hostname",
-            "filter": (
-                'evt.Meta.service == "http" && '
-                'evt.Meta.http_status == "400" && '
-                'evt.Parsed.vhost == "_" && '
-                'evt.Parsed.request startsWith "GET / "'
-            ),
-            "capacity": 2,
-            "leakspeed": "30m",
-            "blackhole": "1h",
-            "labels": {"remediation": True, "service": "http", "confidence": 6},
-        },
-    },
-]
+
+def _library_dir():
+    """Path to the scenario library folder shipped with the app."""
+    return os.path.join(os.path.dirname(__file__), "scenario_library")
+
+
+def _load_scenarios():
+    """Read all .yaml files from the scenario library folder."""
+    lib = _library_dir()
+    scenarios = []
+    for path in sorted(glob.glob(os.path.join(lib, "*.yaml"))):
+        try:
+            with open(path) as f:
+                data = yaml.safe_load(f)
+            if isinstance(data, dict) and _REQUIRED_KEYS.issubset(data):
+                scenarios.append(data)
+        except Exception:
+            continue
+    return scenarios
 
 
 def _scenarios_dir():
@@ -171,7 +61,7 @@ def undeploy(scenario):
 
 def get_scenario_by_id(scenario_id):
     """Find a scenario template by its ID."""
-    for s in SCENARIOS:
+    for s in _load_scenarios():
         if s["id"] == scenario_id:
             return s
     return None
@@ -179,7 +69,4 @@ def get_scenario_by_id(scenario_id):
 
 def get_all_with_status():
     """Return all scenarios with their deployment status."""
-    result = []
-    for s in SCENARIOS:
-        result.append({**s, "deployed": is_deployed(s)})
-    return result
+    return [{**s, "deployed": is_deployed(s)} for s in _load_scenarios()]

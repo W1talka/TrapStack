@@ -1,6 +1,6 @@
 services:
-  crowdsec-gui:
-    container_name: crowdsec-gui
+  trapstack:
+    container_name: trapstack
     build: .
     restart: always
     network_mode: host

@@ -1,0 +1,21 @@
+id: npmplus-binary-garbage
+filename: npmplus-binary-garbage.yaml
+severity: medium
+description: >-
+  Detects non-HTTP binary data sent to HTTP ports.
+  Catches miscellaneous protocol probes and fuzzing attempts.
+yaml_content:
+  type: leaky
+  name: crowdsec/npmplus-binary-garbage
+  description: Ban IPs sending non-HTTP binary data
+  filter: >-
+    evt.Meta.service == "http" &&
+    evt.Meta.http_status == "400" &&
+    evt.Parsed.request contains "\\x"
+  capacity: 3
+  leakspeed: "30m"
+  blackhole: "1h"
+  labels:
+    remediation: true
+    service: http
+    confidence: 8

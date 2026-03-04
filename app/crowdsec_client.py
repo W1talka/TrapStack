@@ -89,7 +89,7 @@ class CrowdSecClient:
         payload = [
             {
                 "duration": duration,
-                "origin": "crowdsec-gui",
+                "origin": "trapstack",
                 "reason": reason,
                 "scope": scope,
                 "type": action,

@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app import deps
 from app.routes import dashboard, decisions, alerts, config_editor, logs, scenarios
 
-logger = logging.getLogger("crowdsec-gui")
+logger = logging.getLogger("trapstack")
 
 
 @asynccontextmanager
@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     await deps.http_client.aclose()
 
 
-app = FastAPI(title="CrowdSec GUI", lifespan=lifespan)
+app = FastAPI(title="TrapStack", lifespan=lifespan)
 
 # Static files (mount only if directory exists)
 static_dir = Path(__file__).parent / "static"

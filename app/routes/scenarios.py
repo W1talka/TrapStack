@@ -1,7 +1,14 @@
-from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse
+import io
+import zipfile
 
-from app.crowdsec_scenarios import get_all_with_status, get_scenario_by_id, deploy, undeploy
+import yaml
+from fastapi import APIRouter, Request, Form, UploadFile, File
+from fastapi.responses import HTMLResponse, StreamingResponse
+
+from app.crowdsec_scenarios import (
+    get_all_with_status, get_scenario_by_id, deploy, undeploy,
+    _library_dir, _REQUIRED_KEYS,
+)
 from app.deps import templates
 
 router = APIRouter(prefix="/scenarios")
@@ -88,3 +95,77 @@ async def deploy_all():
                  </svg>
                  Deployed {deployed} scenarios.{error_text} Refresh page to see updated status.
                </div>''')
+
+
+@router.get("/backup")
+async def backup():
+    """Download all scenario library YAML files as a ZIP."""
+    import glob as _glob
+    import os
+
+    lib = _library_dir()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(_glob.glob(os.path.join(lib, "*.yaml"))):
+            zf.write(path, os.path.basename(path))
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=scenarios-backup.zip"},
+    )
+
+
+@router.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    """HTMX endpoint: upload a ZIP of scenario YAML files to the library."""
+    import os
+
+    if not file.filename or not file.filename.endswith(".zip"):
+        return HTMLResponse(
+            '<div class="alert alert-error text-sm">Please upload a .zip file.</div>',
+            status_code=400,
+        )
+
+    try:
+        content = await file.read()
+        buf = io.BytesIO(content)
+        added = 0
+        skipped = 0
+
+        with zipfile.ZipFile(buf) as zf:
+            for name in zf.namelist():
+                if not name.endswith(".yaml"):
+                    skipped += 1
+                    continue
+                # Security: only use the basename, ignore directory structure
+                basename = os.path.basename(name)
+                if not basename:
+                    skipped += 1
+                    continue
+                raw = zf.read(name)
+                try:
+                    data = yaml.safe_load(raw)
+                except Exception:
+                    skipped += 1
+                    continue
+                if not isinstance(data, dict) or not _REQUIRED_KEYS.issubset(data):
+                    skipped += 1
+                    continue
+                dest = os.path.join(_library_dir(), basename)
+                with open(dest, "wb") as f:
+                    f.write(raw)
+                added += 1
+
+        skip_text = f" ({skipped} skipped)" if skipped else ""
+        return HTMLResponse(f'''<div class="alert alert-success text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Imported {added} scenarios{skip_text}. Refresh page to see changes.
+        </div>''')
+    except zipfile.BadZipFile:
+        return HTMLResponse(
+            '<div class="alert alert-error text-sm">Invalid ZIP file.</div>',
+            status_code=400,
+        )

@@ -1,0 +1,21 @@
+id: npmplus-rdp-bruteforce
+filename: npmplus-rdp-bruteforce.yaml
+severity: critical
+description: >-
+  Detects RDP brute force attempts sent to HTTP ports.
+  Attackers send mstshash cookies to probe for RDP services.
+yaml_content:
+  type: leaky
+  name: crowdsec/npmplus-rdp-bruteforce
+  description: Ban IPs attempting RDP brute force via HTTP
+  filter: >-
+    evt.Meta.service == "http" &&
+    evt.Meta.http_status == "400" &&
+    evt.Parsed.request contains "mstshash="
+  capacity: 1
+  leakspeed: "30m"
+  blackhole: "1h"
+  labels:
+    remediation: true
+    service: http
+    confidence: 10

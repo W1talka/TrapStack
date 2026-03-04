@@ -4,9 +4,10 @@ from collections import Counter
 from fastapi import APIRouter, Request
 
 from app.crowdsec_client import CrowdSecClient
+from app.crowdsec_scenarios import get_all_with_status
 from app.deps import templates, get_http_client
 
-logger = logging.getLogger("crowdsec-gui")
+logger = logging.getLogger("trapstack")
 
 router = APIRouter()
 
@@ -16,9 +17,17 @@ async def index(request: Request):
     error = None
     decisions = []
     alerts = []
-    stats = {"bans": 0, "alerts_total": 0, "top_scenario": "N/A", "top_country": "N/A"}
+    stats = {"bans": 0, "alerts_total": 0, "top_scenario": "N/A", "top_country": "N/A",
+             "scenarios_deployed": 0, "scenarios_total": 0}
 
     client = CrowdSecClient(get_http_client())
+
+    try:
+        all_scenarios = get_all_with_status()
+        stats["scenarios_total"] = len(all_scenarios)
+        stats["scenarios_deployed"] = sum(1 for s in all_scenarios if s["deployed"])
+    except Exception:
+        pass
 
     try:
         decisions = await client.get_decisions()
@@ -66,9 +75,17 @@ async def partial_stats(request: Request):
     error = None
     decisions = []
     alerts = []
-    stats = {"bans": 0, "alerts_total": 0, "top_scenario": "N/A", "top_country": "N/A"}
+    stats = {"bans": 0, "alerts_total": 0, "top_scenario": "N/A", "top_country": "N/A",
+             "scenarios_deployed": 0, "scenarios_total": 0}
 
     client = CrowdSecClient(get_http_client())
+
+    try:
+        all_scenarios = get_all_with_status()
+        stats["scenarios_total"] = len(all_scenarios)
+        stats["scenarios_deployed"] = sum(1 for s in all_scenarios if s["deployed"])
+    except Exception:
+        pass
 
     try:
         decisions = await client.get_decisions()

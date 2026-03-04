@@ -1,0 +1,22 @@
+id: npmplus-generic-probe
+filename: npmplus-generic-probe.yaml
+severity: low
+description: >-
+  Detects IPs probing the server directly by IP with no valid
+  hostname. Catches basic reconnaissance scans.
+yaml_content:
+  type: leaky
+  name: crowdsec/npmplus-generic-probe
+  description: Ban IPs probing server with no valid hostname
+  filter: >-
+    evt.Meta.service == "http" &&
+    evt.Meta.http_status == "400" &&
+    evt.Parsed.vhost == "_" &&
+    evt.Parsed.request startsWith "GET / "
+  capacity: 2
+  leakspeed: "30m"
+  blackhole: "1h"
+  labels:
+    remediation: true
+    service: http
+    confidence: 6

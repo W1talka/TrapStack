@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, Query
 from app.crowdsec_client import CrowdSecClient
 from app.deps import templates, get_http_client
 
-logger = logging.getLogger("crowdsec-gui")
+logger = logging.getLogger("trapstack")
 
 router = APIRouter(prefix="/alerts")
 

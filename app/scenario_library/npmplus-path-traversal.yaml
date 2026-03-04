@@ -1,0 +1,23 @@
+id: npmplus-path-traversal
+filename: npmplus-path-traversal.yaml
+severity: critical
+description: >-
+  Detects directory traversal attacks attempting to access
+  system files like /etc/passwd or execute /bin/sh.
+yaml_content:
+  type: leaky
+  name: crowdsec/npmplus-path-traversal
+  description: Ban IPs attempting path traversal attacks
+  filter: >-
+    evt.Meta.service == "http" &&
+    (evt.Parsed.request contains ".%2e" ||
+    evt.Parsed.request contains "%2e." ||
+    evt.Parsed.request contains "/etc/passwd" ||
+    evt.Parsed.request contains "/bin/sh")
+  capacity: 1
+  leakspeed: "30m"
+  blackhole: "1h"
+  labels:
+    remediation: true
+    service: http
+    confidence: 10

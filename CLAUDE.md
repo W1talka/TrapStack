@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CrowdSec Firewall GUI — a web interface for managing CrowdSec firewall via its Local API (LAPI). Built with FastAPI + Jinja2 + HTMX + DaisyUI.
+TrapStack — a web interface for managing CrowdSec firewall scenarios and decisions via its Local API (LAPI). Built with FastAPI + Jinja2 + HTMX + DaisyUI.
 
 ## Commands
 

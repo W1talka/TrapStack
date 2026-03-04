@@ -1,0 +1,21 @@
+id: npmplus-tls-probing
+filename: npmplus-tls-probing.yaml
+severity: high
+description: >-
+  Detects IPs sending raw TLS/SSL handshakes to HTTP ports.
+  This is a common scanning technique to fingerprint services.
+yaml_content:
+  type: leaky
+  name: crowdsec/npmplus-tls-probing
+  description: Ban IPs sending TLS handshakes to HTTP port
+  filter: >-
+    evt.Meta.service == "http" &&
+    evt.Meta.http_status == "400" &&
+    evt.Parsed.request contains "\\x16\\x03"
+  capacity: 2
+  leakspeed: "30m"
+  blackhole: "1h"
+  labels:
+    remediation: true
+    service: http
+    confidence: 10

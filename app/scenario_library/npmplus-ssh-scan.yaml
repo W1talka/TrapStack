@@ -1,0 +1,21 @@
+id: npmplus-ssh-scan
+filename: npmplus-ssh-scan.yaml
+severity: high
+description: >-
+  Detects SSH protocol handshakes sent to HTTP ports.
+  Automated scanners probe for SSH on non-standard ports.
+yaml_content:
+  type: leaky
+  name: crowdsec/npmplus-ssh-scan
+  description: Ban IPs sending SSH protocol to HTTP port
+  filter: >-
+    evt.Meta.service == "http" &&
+    evt.Meta.http_status == "400" &&
+    evt.Parsed.request contains "SSH-2.0-"
+  capacity: 1
+  leakspeed: "30m"
+  blackhole: "1h"
+  labels:
+    remediation: true
+    service: http
+    confidence: 10
