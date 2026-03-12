@@ -146,8 +146,11 @@ class AIClient:
                     {"role": "user", "content": user_prompt},
                 ],
             },
-            timeout=90.0,
+            timeout=120.0,
         )
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            body = resp.text[:500]
+            logger.error(f"OpenAI API error {resp.status_code}: {body}")
+            raise Exception(f"AI API error {resp.status_code}: {body}")
         data = resp.json()
         return data["choices"][0]["message"]["content"]
