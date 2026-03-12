@@ -42,34 +42,28 @@ Example scenario:
     service: http
     confidence: 7
 
-You must respond ONLY with valid JSON in this exact format:
+You must respond ONLY with valid JSON. Keep the structure FLAT — no nested objects.
+Use this exact format:
 {
   "recommendations": [
     {
-      "id": "<kebab-case-id>",
-      "title": "<short title>",
-      "severity": "<critical|high|medium|low>",
-      "hits_count": <int, how many matching requests were found in the analyzed logs>,
-      "unique_ips": <int, how many unique IPs performed this attack>,
-      "reasoning": "<why this pattern is dangerous and why you recommend blocking it>",
-      "evidence": "<specific log entries/patterns that triggered this, with example requests>",
-      "yaml_content": {
-        "type": "leaky",
-        "name": "crowdsec/<name>",
-        "description": "<description>",
-        "filter": "<CrowdSec filter expression>",
-        "capacity": <int>,
-        "leakspeed": "<duration>",
-        "blackhole": "<duration>",
-        "labels": {
-          "remediation": true,
-          "service": "http",
-          "confidence": <1-10>
-        }
-      }
+      "id": "kebab-case-id",
+      "title": "short title",
+      "severity": "critical or high or medium or low",
+      "hits_count": 42,
+      "unique_ips": 3,
+      "reasoning": "why this pattern is dangerous",
+      "evidence": "example requests that triggered this",
+      "scenario_name": "crowdsec/npmplus-example",
+      "scenario_description": "what this scenario detects",
+      "filter": "evt.Meta.service == http && evt.Parsed.request contains /example",
+      "capacity": 3,
+      "leakspeed": "30m",
+      "blackhole": "1h",
+      "confidence": 7
     }
   ],
-  "summary": "<2-3 sentence overall assessment of the traffic>"
+  "summary": "2-3 sentence overall assessment"
 }
 
 Rules:
@@ -79,7 +73,7 @@ Rules:
 - Use confidence 8-10 for clear attacks, 5-7 for likely probes, 3-4 for uncertain
 - Keep filter expressions specific to avoid false positives
 - If no new scenarios are needed, return empty recommendations with a summary explaining why
-- Do not output anything other than the JSON object"""
+- Output ONLY the JSON object, nothing else"""
 
 
 class AIClient:

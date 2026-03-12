@@ -43,10 +43,39 @@ def _strip_code_fences(text):
 
 
 def _validate_recommendation(rec):
-    """Validate a single AI recommendation. Returns (cleaned_rec, error)."""
-    required = {"id", "title", "severity", "description", "evidence", "yaml_content"}
+    """Validate a single AI recommendation. Returns (cleaned_rec, error).
+
+    Handles both flat format (from local models) and nested yaml_content format.
+    Flat fields: scenario_name, scenario_description, filter, capacity, leakspeed, blackhole, confidence
+    """
+    # Reconstruct yaml_content from flat fields if not present
+    if "yaml_content" not in rec and "filter" in rec:
+        rec["yaml_content"] = {
+            "type": "leaky",
+            "name": rec.get("scenario_name", f"crowdsec/npmplus-{rec.get('id', 'unknown')}"),
+            "description": rec.get("scenario_description", rec.get("description", "")),
+            "filter": rec["filter"],
+            "capacity": rec.get("capacity", 3),
+            "leakspeed": rec.get("leakspeed", "30m"),
+            "blackhole": rec.get("blackhole", "1h"),
+            "labels": {
+                "remediation": True,
+                "service": "http",
+                "confidence": rec.get("confidence", 5),
+            },
+        }
+        # Use scenario_description for the card if present, fall back to description
+        if "scenario_description" in rec and "description" not in rec:
+            rec["description"] = rec["scenario_description"]
+        elif "description" not in rec:
+            rec["description"] = rec.get("scenario_description", "")
+
+    required = {"id", "title", "severity", "evidence"}
     if not required.issubset(rec.keys()):
         return None, f"Missing fields: {required - rec.keys()}"
+
+    if "yaml_content" not in rec:
+        return None, "Missing yaml_content and no flat filter field"
 
     yc = rec["yaml_content"]
     yaml_required = {"type", "name", "filter", "capacity", "leakspeed", "blackhole"}
@@ -67,6 +96,10 @@ def _validate_recommendation(rec):
     # Ensure severity is valid
     if rec["severity"] not in ("critical", "high", "medium", "low"):
         rec["severity"] = "medium"
+
+    # Ensure description exists
+    if "description" not in rec:
+        rec["description"] = yc.get("description", "")
 
     return rec, None
 
