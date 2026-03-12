@@ -10,3 +10,9 @@ CROWDSEC_MACHINE_ID = os.environ.get("CROWDSEC_MACHINE_ID", "")
 CROWDSEC_MACHINE_PASSWORD = os.environ.get("CROWDSEC_MACHINE_PASSWORD", "")
 CROWDSEC_CONF_DIR = os.environ.get("CROWDSEC_CONF_DIR", "/opt/crowdsec/conf")
 NPMPLUS_LOG_DIR = os.environ.get("NPMPLUS_LOG_DIR", "/opt/npmplus/nginx/logs")
+
+# AI Provider settings (optional — set AI_PROVIDER to enable AI log analysis)
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "")        # "anthropic" or "openai"
+AI_API_KEY = os.environ.get("AI_API_KEY", "")
+AI_API_URL = os.environ.get("AI_API_URL", "")           # Override for Ollama etc.
+AI_MODEL = os.environ.get("AI_MODEL", "")

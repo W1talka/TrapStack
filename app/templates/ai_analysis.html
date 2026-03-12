@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}AI Analysis - TrapStack{% endblock %}
+
+{% block content %}
+<div class="p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 class="text-2xl font-bold">AI Log Analysis</h2>
+        {% if ai_configured %}
+        <span class="badge badge-ghost text-xs">{{ ai_provider }} / {{ ai_model }}</span>
+        {% endif %}
+    </div>
+
+    {% if not ai_configured %}
+    <!-- Setup guide -->
+    <div class="alert alert-warning flex-col items-start gap-3">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <span class="font-medium">AI analysis requires configuration</span>
+        </div>
+        <div class="text-sm space-y-2">
+            <p>Set the following environment variables to enable AI-powered log analysis:</p>
+            <div class="bg-base-300 rounded-lg p-3 font-mono text-xs space-y-1">
+                <div><span class="text-primary">AI_PROVIDER</span>=anthropic <span class="text-base-content/40"># or "openai" for OpenAI-compatible APIs</span></div>
+                <div><span class="text-primary">AI_API_KEY</span>=your-api-key</div>
+                <div><span class="text-base-content/40"># Optional overrides:</span></div>
+                <div><span class="text-primary">AI_API_URL</span>= <span class="text-base-content/40"># e.g. http://localhost:11434/v1 for Ollama</span></div>
+                <div><span class="text-primary">AI_MODEL</span>= <span class="text-base-content/40"># e.g. llama3, gpt-4o, claude-sonnet-4-20250514</span></div>
+            </div>
+            <p class="text-base-content/60">Supported providers: Anthropic (Claude), OpenAI, Ollama, and any OpenAI-compatible API.</p>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Analysis controls -->
+    <div class="alert alert-info flex-col items-start sm:flex-row sm:items-center gap-3">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-sm flex-1">
+            Analyze recent access logs with AI to discover attack patterns not covered by existing scenarios.
+            Results include ready-to-deploy CrowdSec scenario YAML files.
+        </span>
+        <div id="analyze-btn-container">
+            <button hx-post="/ai-analysis/run"
+                    hx-target="#ai-results"
+                    hx-swap="innerHTML"
+                    hx-indicator="#analyze-spinner"
+                    class="btn btn-primary btn-sm gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                Analyze Recent Logs
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="analyze-spinner" class="htmx-indicator flex items-center justify-center gap-3 py-8">
+        <span class="loading loading-spinner loading-md text-primary"></span>
+        <span class="text-sm text-base-content/60">Analyzing logs with AI... this may take up to 30 seconds</span>
+    </div>
+
+    <!-- Results container -->
+    <div id="ai-results"></div>
+    {% endif %}
+</div>
+{% endblock %}

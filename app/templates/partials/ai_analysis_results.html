@@ -1,0 +1,135 @@
+<!-- AI Summary -->
+{% if summary %}
+<div class="card bg-base-200 shadow-sm">
+    <div class="card-body p-4 gap-2">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <h3 class="font-bold text-sm">AI Assessment</h3>
+            <span class="badge badge-ghost badge-sm">{{ total_entries }} entries analyzed</span>
+        </div>
+        <p class="text-sm text-base-content/70">{{ summary }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommendations -->
+{% if recommendations %}
+<div class="flex items-center justify-between">
+    <h3 class="text-lg font-bold">{{ recommendations|length }} Scenario{{ 's' if recommendations|length != 1 }} Recommended</h3>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {% for rec in recommendations %}
+    <div class="card bg-base-200 shadow-sm" id="ai-rec-{{ rec.id }}">
+        <div class="card-body space-y-3">
+            <!-- Header -->
+            <div class="flex items-start justify-between">
+                <div class="space-y-1 min-w-0 flex-1">
+                    <h3 class="text-sm font-bold">{{ rec.title }}</h3>
+                    <p class="text-xs text-base-content/60 leading-relaxed">{{ rec.description }}</p>
+                </div>
+                <span class="shrink-0 ml-3 badge badge-sm
+                    {% if rec.severity == 'critical' %}badge-error
+                    {% elif rec.severity == 'high' %}badge-warning
+                    {% elif rec.severity == 'medium' %}badge-warning badge-outline
+                    {% else %}badge-info{% endif %}">
+                    {{ rec.severity }}
+                </span>
+            </div>
+
+            <!-- Evidence -->
+            <div class="bg-base-300/50 rounded-lg px-3 py-2">
+                <div class="text-[10px] uppercase tracking-wider text-base-content/40 mb-1">Evidence</div>
+                <p class="text-xs text-base-content/70">{{ rec.evidence }}</p>
+            </div>
+
+            <!-- Filter preview -->
+            <div class="bg-base-300 rounded-lg px-3 py-2">
+                <div class="text-[10px] uppercase tracking-wider text-base-content/40 mb-1">Filter</div>
+                <code class="text-[11px] text-base-content/60 break-all">{{ rec.yaml_content.filter }}</code>
+            </div>
+
+            <!-- Details -->
+            <div class="flex flex-wrap gap-4 text-xs text-base-content/60">
+                <div>
+                    <span class="opacity-60">Capacity:</span>
+                    <span class="font-medium">{{ rec.yaml_content.capacity }}</span>
+                </div>
+                <div>
+                    <span class="opacity-60">Leak:</span>
+                    <span class="font-medium">{{ rec.yaml_content.leakspeed }}</span>
+                </div>
+                <div>
+                    <span class="opacity-60">Blackhole:</span>
+                    <span class="font-medium">{{ rec.yaml_content.blackhole }}</span>
+                </div>
+                {% if rec.yaml_content.labels and rec.yaml_content.labels.confidence %}
+                <div>
+                    <span class="opacity-60">Confidence:</span>
+                    <span class="font-medium">{{ rec.yaml_content.labels.confidence }}/10</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Warning -->
+            <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-warning shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <span class="text-[11px] text-warning/80">AI-generated — review before deploying</span>
+            </div>
+
+            <!-- Actions -->
+            <div id="ai-action-{{ rec.id }}" class="flex items-center gap-2">
+                <form class="contents" hx-post="/ai-analysis/save"
+                      hx-target="#ai-action-{{ rec.id }}" hx-swap="innerHTML">
+                    <input type="hidden" name="scenario_id" value="{{ rec.id }}">
+                    <input type="hidden" name="title" value="{{ rec.title }}">
+                    <input type="hidden" name="severity" value="{{ rec.severity }}">
+                    <input type="hidden" name="description" value="{{ rec.description }}">
+                    <input type="hidden" name="filename" value="{{ rec.filename }}">
+                    <input type="hidden" name="yaml_content" value="{{ rec.yaml_content | tojson }}">
+                    <button type="submit" class="btn btn-ghost btn-sm gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                        Save to Library
+                    </button>
+                </form>
+                <form class="contents" hx-post="/ai-analysis/deploy"
+                      hx-target="#ai-action-{{ rec.id }}" hx-swap="innerHTML"
+                      hx-confirm="Deploy '{{ rec.title }}'? You'll need to restart CrowdSec to activate it.">
+                    <input type="hidden" name="scenario_id" value="{{ rec.id }}">
+                    <input type="hidden" name="title" value="{{ rec.title }}">
+                    <input type="hidden" name="severity" value="{{ rec.severity }}">
+                    <input type="hidden" name="description" value="{{ rec.description }}">
+                    <input type="hidden" name="filename" value="{{ rec.filename }}">
+                    <input type="hidden" name="yaml_content" value="{{ rec.yaml_content | tojson }}">
+                    <button type="submit" class="btn btn-primary btn-sm gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Save & Deploy
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="alert alert-info">
+    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M5 13l4 4L19 7"/>
+    </svg>
+    <span class="text-sm">No new scenarios recommended. Your existing scenarios cover the detected patterns well.</span>
+</div>
+{% endif %}

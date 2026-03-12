@@ -1,6 +1,5 @@
 import json
 import os
-import re
 
 from fastapi import APIRouter, Request, Form, Query
 from fastapi.responses import HTMLResponse
@@ -8,65 +7,24 @@ from fastapi.responses import HTMLResponse
 from app import config
 from app.crowdsec_client import CrowdSecClient
 from app.deps import templates, get_http_client
+from app.log_analyzer import get_rotated_files, read_lines, parse_line, tail_log
 from app.threat_detection import classify_entries
 
 router = APIRouter(prefix="/logs")
-
-# Pattern: [timestamp] host remote_addr ...
-LOG_PATTERN = re.compile(
-    r"\[(?P<timestamp>[^\]]+)\]\s+(?P<host>\S+)\s+(?P<remote_addr>\S+)\s+"
-    r"(?P<response_time>\S+)\s+\"(?P<request>[^\"]*)\"\s+(?P<status>\d+)\s+"
-    r"(?P<body_bytes>\S+)\s+(?P<total_bytes>\S+)\s+(?P<referer>\S+)\s+"
-    r"(?P<user_agent>.+)"
-)
 
 
 def _get_log_dir():
     return config.NPMPLUS_LOG_DIR
 
 
-def _get_rotated_files(log_dir, basename):
-    """Return list of log files sorted by recency: basename, basename.1, basename.2, ..."""
-    files = []
-    base = os.path.join(log_dir, basename)
-    if os.path.isfile(base):
-        files.append(base)
-    i = 1
-    while True:
-        rotated = f"{base}.{i}"
-        if os.path.isfile(rotated):
-            files.append(rotated)
-            i += 1
-        else:
-            break
-    return files
-
-
-def _read_lines(path):
-    """Read all lines from a file, returning [] on error."""
-    try:
-        with open(path) as f:
-            return f.readlines()
-    except (FileNotFoundError, PermissionError):
-        return []
-
-
-def _parse_line(line):
-    """Parse a single NPMPlus access log line."""
-    m = LOG_PATTERN.match(line.strip())
-    if not m:
-        return None
-    return m.groupdict()
-
-
 def _get_hosts_from_log(log_dir, max_lines=5000):
     """Scan recent log lines across rotated files to extract unique hostnames."""
     hosts = set()
     remaining = max_lines
-    for path in _get_rotated_files(log_dir, "access.log"):
-        lines = _read_lines(path)
+    for path in get_rotated_files(log_dir, "access.log"):
+        lines = read_lines(path)
         for line in lines[-remaining:]:
-            parsed = _parse_line(line)
+            parsed = parse_line(line)
             if parsed and parsed["host"] not in ("127.0.0.1", "127.0.0.1:81"):
                 hosts.add(parsed["host"])
         remaining -= len(lines)
@@ -79,10 +37,10 @@ def _get_status_codes_from_log(log_dir, max_lines=5000):
     """Scan recent log lines across rotated files to extract unique HTTP status codes."""
     codes = set()
     remaining = max_lines
-    for path in _get_rotated_files(log_dir, "access.log"):
-        lines = _read_lines(path)
+    for path in get_rotated_files(log_dir, "access.log"):
+        lines = read_lines(path)
         for line in lines[-remaining:]:
-            parsed = _parse_line(line)
+            parsed = parse_line(line)
             if parsed:
                 codes.add(parsed["status"])
         remaining -= len(lines)
@@ -91,32 +49,11 @@ def _get_status_codes_from_log(log_dir, max_lines=5000):
     return sorted(codes)
 
 
-def _tail_log(log_dir, host_filter=None, status_filter=None, limit=200):
-    """Read recent log lines across rotated files, optionally filtered."""
-    entries = []
-    for path in _get_rotated_files(log_dir, "access.log"):
-        lines = _read_lines(path)
-        for line in reversed(lines):
-            parsed = _parse_line(line)
-            if not parsed:
-                continue
-            if host_filter and parsed["host"] != host_filter:
-                continue
-            if status_filter and parsed["status"] != status_filter:
-                continue
-            if "NPMplus/healthcheck" in parsed.get("user_agent", ""):
-                continue
-            entries.append(parsed)
-            if len(entries) >= limit:
-                return entries
-    return entries
-
-
 def _tail_error_log(log_dir, limit=100):
     """Read recent error log lines across rotated files."""
     entries = []
-    for path in _get_rotated_files(log_dir, "error.log"):
-        lines = _read_lines(path)
+    for path in get_rotated_files(log_dir, "error.log"):
+        lines = read_lines(path)
         cleaned = [l.strip() for l in lines if l.strip()]
         entries = cleaned + entries
     entries = entries[-limit:]
@@ -162,7 +99,7 @@ async def index(
     elif log_type == "error":
         error_lines = _tail_error_log(log_dir, limit=limit)
     else:
-        entries = _tail_log(log_dir, host_filter=host_filter or None,
+        entries = tail_log(log_dir, host_filter=host_filter or None,
                            status_filter=status_filter or None, limit=limit)
         entries = classify_entries(entries)
         banned_ips = await _get_banned_ips()
