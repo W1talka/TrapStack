@@ -18,23 +18,23 @@
 
         /* Card polish */
         .card {
-            border: 1px solid oklch(var(--bc) / 0.06);
-            box-shadow: 0 4px 24px oklch(0 0 0 / 0.15);
+            border: 1px solid rgba(255 255 255 / 0.06);
+            box-shadow: 0 4px 24px rgba(0 0 0 / 0.15);
         }
 
         /* Table row hover */
         .table tbody tr { transition: background-color 0.15s ease; }
 
         /* Subtle glows */
-        .badge-error { box-shadow: 0 0 8px oklch(var(--er) / 0.3); }
-        .btn-primary { box-shadow: 0 0 12px oklch(var(--p) / 0.25); }
-        .btn-error { box-shadow: 0 0 12px oklch(var(--er) / 0.2); }
+        .badge-error { box-shadow: 0 0 8px rgba(248 114 114 / 0.3); }
+        .btn-primary { box-shadow: 0 0 12px rgba(124 58 237 / 0.35); }
+        .btn-error { box-shadow: 0 0 12px rgba(248 114 114 / 0.2); }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: oklch(var(--bc) / 0.15); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: oklch(var(--bc) / 0.25); }
+        ::-webkit-scrollbar-thumb { background: rgba(255 255 255 / 0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255 255 255 / 0.2); }
 
         /* Smooth scroll */
         main { scroll-behavior: smooth; }
@@ -81,7 +81,7 @@
                     </label>
                 </div>
                 <div class="flex-1">
-                    <span class="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">TrapStack</span>
+                    <span class="text-lg font-bold bg-gradient-to-r from-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">TrapStack</span>
                 </div>
             </div>
 
@@ -96,10 +96,10 @@
             <aside class="w-64 bg-base-200 border-r border-base-300 flex flex-col min-h-full">
                 <div class="p-6 border-b border-base-300">
                     <h1 class="text-xl font-bold flex items-center gap-2">
-                        <svg class="w-6 h-6 text-primary drop-shadow-[0_0_6px_oklch(var(--p))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-6 h-6 text-primary drop-shadow-[0_0_6px_#7c3aed]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
-                        <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">TrapStack</span>
+                        <span class="bg-gradient-to-r from-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">TrapStack</span>
                     </h1>
                 </div>
                 <ul class="menu flex-1 p-4 gap-1 [&_a]:transition-all [&_a]:duration-200">
