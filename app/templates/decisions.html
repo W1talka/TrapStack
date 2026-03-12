@@ -2,8 +2,8 @@
 {% block title %}Decisions - TrapStack{% endblock %}
 
 {% block content %}
-<div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
+<div class="p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 class="text-2xl font-bold">Decisions</h2>
         <span class="text-sm text-base-content/60">{{ total }} active</span>
     </div>
@@ -45,7 +45,7 @@
                     <input type="text" name="reason" value="Manual ban via GUI" placeholder="Reason for ban"
                            class="input input-bordered w-full input-sm">
                 </div>
-                <button type="submit" class="btn btn-error btn-sm">Ban</button>
+                <button type="submit" class="btn btn-error btn-sm w-full sm:w-auto">Ban</button>
             </form>
         </div>
     </div>
@@ -86,7 +86,7 @@
 
     <!-- Pagination -->
     {% if total_pages > 1 %}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-2">
         <span class="text-xs text-base-content/60">
             Page {{ page }} of {{ total_pages }} ({{ total }} total)
         </span>
@@ -95,9 +95,10 @@
             <a href="/decisions/?page={{ page - 1 }}&search={{ search }}&origin={{ selected_origin }}"
                class="join-item btn btn-sm">Previous</a>
             {% endif %}
+            <span class="join-item btn btn-sm btn-disabled sm:hidden">{{ page }} / {{ total_pages }}</span>
             {% for p in range(1, total_pages + 1) %}
             <a href="/decisions/?page={{ p }}&search={{ search }}&origin={{ selected_origin }}"
-               class="join-item btn btn-sm {% if p == page %}btn-primary{% endif %}">
+               class="join-item btn btn-sm {% if p == page %}btn-primary{% endif %} hidden sm:inline-flex">
                 {{ p }}
             </a>
             {% endfor %}

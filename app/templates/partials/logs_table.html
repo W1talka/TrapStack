@@ -5,11 +5,11 @@
                 <tr>
                     <th class="w-6"></th>
                     <th>Time</th>
-                    <th>Host</th>
+                    <th class="hidden md:table-cell">Host</th>
                     <th>Remote IP</th>
                     <th>Request</th>
                     <th>Status</th>
-                    <th>User Agent</th>
+                    <th class="hidden lg:table-cell">User Agent</th>
                     <th class="w-32">Action</th>
                 </tr>
             </thead>
@@ -35,7 +35,7 @@
                         {% endif %}
                     </td>
                     <td class="text-base-content/60 whitespace-nowrap text-xs">{{ entry.timestamp }}</td>
-                    <td class="text-primary whitespace-nowrap text-xs">{{ entry.host }}</td>
+                    <td class="hidden md:table-cell text-primary whitespace-nowrap text-xs">{{ entry.host }}</td>
                     <td class="whitespace-nowrap text-xs font-mono">
                         <span class="inline-flex items-center gap-1.5">
                             {{ entry.remote_addr }}
@@ -75,7 +75,7 @@
                             {{ entry.status }}
                         </span>
                     </td>
-                    <td class="text-base-content/60 text-xs max-w-xs truncate" title="{{ entry.user_agent }}">{{ entry.user_agent }}</td>
+                    <td class="hidden lg:table-cell text-base-content/60 text-xs max-w-xs truncate" title="{{ entry.user_agent }}">{{ entry.user_agent }}</td>
                     <!-- Action: ban button or banned badge -->
                     <td class="whitespace-nowrap" id="ban-action-{{ loop.index }}">
                         {% if entry.threat %}

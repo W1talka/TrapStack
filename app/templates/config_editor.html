@@ -2,9 +2,9 @@
 {% block title %}Config Editor - TrapStack{% endblock %}
 
 {% block content %}
-<div class="p-6 flex gap-6 h-[calc(100vh-2rem)]">
+<div class="p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-2rem)]">
     <!-- File Browser Sidebar -->
-    <div class="w-72 shrink-0 card bg-base-200 shadow-sm overflow-y-auto">
+    <div class="w-full lg:w-72 lg:shrink-0 card bg-base-200 shadow-sm max-h-64 lg:max-h-none overflow-y-auto">
         <div class="px-4 py-3 border-b border-base-300">
             <h3 class="text-sm font-semibold">Config Files</h3>
         </div>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Editor -->
-    <div class="flex-1 flex flex-col card bg-base-200 shadow-sm overflow-hidden">
+    <div class="flex-1 flex flex-col card bg-base-200 shadow-sm overflow-hidden min-h-[60vh] lg:min-h-0">
         {% if msg %}
         <div class="alert {{ 'alert-error' if msg_type == 'error' else 'alert-success' }} text-sm rounded-none">
             {{ msg }}

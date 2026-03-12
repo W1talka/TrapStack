@@ -2,8 +2,8 @@
 {% block title %}Logs - TrapStack{% endblock %}
 
 {% block content %}
-<div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
+<div class="p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 class="text-2xl font-bold">Reverse Proxy Logs</h2>
         <div class="flex items-center gap-1">
             <a href="/logs/?type=access&host={{ selected_host }}"
@@ -62,7 +62,7 @@
 
     <!-- Threat summary bar -->
     {% if threat_count > 0 %}
-    <div class="alert alert-error">
+    <div class="alert alert-error flex-col sm:flex-row gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -93,7 +93,7 @@
     <div id="logs-table">
         {% include "partials/logs_table.html" %}
     </div>
-    <div class="flex items-center justify-between text-xs text-base-content/60">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-xs text-base-content/60">
         <span>Showing {{ entries|length }} most recent entries (limit: {{ limit }})</span>
         {% if threat_count > 0 %}
         <span class="text-error">{{ threat_count }} threats detected</span>

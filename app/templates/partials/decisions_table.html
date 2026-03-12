@@ -6,8 +6,8 @@
                     <th>IP</th>
                     <th>Scenario</th>
                     <th>Action</th>
-                    <th>Origin</th>
-                    <th>Scope</th>
+                    <th class="hidden sm:table-cell">Origin</th>
+                    <th class="hidden md:table-cell">Scope</th>
                     <th>Expiry</th>
                     <th class="w-20"></th>
                 </tr>
@@ -27,8 +27,8 @@
                             {{ d.type }}
                         </span>
                     </td>
-                    <td class="text-base-content/60">{{ d.origin }}</td>
-                    <td class="text-base-content/60">{{ d.scope }}</td>
+                    <td class="hidden sm:table-cell text-base-content/60">{{ d.origin }}</td>
+                    <td class="hidden md:table-cell text-base-content/60">{{ d.scope }}</td>
                     <td class="text-base-content/60">{{ d.duration }}</td>
                     <td>
                         <button hx-delete="/decisions/delete/{{ d.id }}"

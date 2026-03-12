@@ -2,22 +2,22 @@
 {% block title %}Scenarios - TrapStack{% endblock %}
 
 {% block content %}
-<div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
+<div class="p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 class="text-2xl font-bold">Scenarios</h2>
         <span class="text-sm text-base-content/60">{{ deployed_count }}/{{ scenarios|length }} deployed</span>
     </div>
 
     <!-- Info banner -->
-    <div class="alert alert-info">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="alert alert-info flex-col items-start sm:flex-row sm:items-center gap-3">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <span class="text-sm">
             Deploy scenarios to auto-detect and ban attack patterns. <strong>Restart CrowdSec</strong> after changes.
         </span>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <!-- Backup -->
             <a href="/scenarios/backup" class="btn btn-ghost btn-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@
                 </div>
 
                 <!-- Details -->
-                <div class="flex gap-4 text-xs text-base-content/60">
+                <div class="flex flex-wrap gap-4 text-xs text-base-content/60">
                     <div>
                         <span class="opacity-60">Capacity:</span>
                         <span class="font-medium">{{ s.yaml_content.capacity }}</span>

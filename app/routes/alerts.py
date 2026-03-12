@@ -34,6 +34,12 @@ async def index(
         if scenario_filter:
             alerts = [a for a in alerts if a.get("scenario") == scenario_filter]
 
+        # Cap decisions per alert to prevent badge explosion (CAPI alerts can have hundreds)
+        for alert in alerts:
+            decisions = alert.get("decisions") or []
+            alert["decision_count"] = len(decisions)
+            alert["decisions"] = decisions[:3]
+
     except Exception as e:
         error = f"Failed to fetch alerts: {e}"
         logger.error(error)

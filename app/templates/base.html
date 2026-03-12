@@ -12,6 +12,32 @@
         .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
         .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
         [hx-indicator] .htmx-indicator { opacity: 0; }
+
+        /* Drawer transition */
+        .drawer-side { transition: transform 0.3s ease-in-out; }
+
+        /* Card polish */
+        .card {
+            border: 1px solid oklch(var(--bc) / 0.06);
+            box-shadow: 0 4px 24px oklch(0 0 0 / 0.15);
+        }
+
+        /* Table row hover */
+        .table tbody tr { transition: background-color 0.15s ease; }
+
+        /* Subtle glows */
+        .badge-error { box-shadow: 0 0 8px oklch(var(--er) / 0.3); }
+        .btn-primary { box-shadow: 0 0 12px oklch(var(--p) / 0.25); }
+        .btn-error { box-shadow: 0 0 12px oklch(var(--er) / 0.2); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: oklch(var(--bc) / 0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: oklch(var(--bc) / 0.25); }
+
+        /* Smooth scroll */
+        main { scroll-behavior: smooth; }
     </style>
     <script>
         // Toast system via HX-Trigger
@@ -26,83 +52,112 @@
             toast.appendChild(el);
             setTimeout(() => el.remove(), 4000);
         });
+
+        // Auto-close drawer on nav click (mobile)
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('.drawer-side a');
+            if (link) {
+                document.getElementById('sidebar-drawer').checked = false;
+            }
+        });
     </script>
 </head>
 <body class="h-full bg-base-100 text-base-content">
     <!-- Toast container -->
     <div id="toast-container" class="toast toast-top toast-end z-50"></div>
 
-    <div class="flex h-full">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-base-200 border-r border-base-300 flex flex-col shrink-0">
-            <div class="p-6 border-b border-base-300">
-                <h1 class="text-xl font-bold flex items-center gap-2">
-                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                    </svg>
-                    TrapStack
-                </h1>
+    <div class="drawer lg:drawer-open">
+        <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
+
+        <!-- Main content area -->
+        <div class="drawer-content flex flex-col">
+            <!-- Mobile top bar -->
+            <div class="navbar bg-base-200 border-b border-base-300 lg:hidden sticky top-0 z-30">
+                <div class="flex-none">
+                    <label for="sidebar-drawer" class="btn btn-square btn-ghost">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </label>
+                </div>
+                <div class="flex-1">
+                    <span class="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">TrapStack</span>
+                </div>
             </div>
-            <ul class="menu flex-1 p-4 gap-1">
-                <li>
-                    <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                        </svg>
-                        Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a href="/decisions/" class="{% if request.url.path.startswith('/decisions') %}active{% endif %}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                        </svg>
-                        Decisions
-                    </a>
-                </li>
-                <li>
-                    <a href="/alerts/" class="{% if request.url.path.startswith('/alerts') %}active{% endif %}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                        </svg>
-                        Alerts
-                    </a>
-                </li>
-                <li>
-                    <a href="/config/" class="{% if request.url.path.startswith('/config') %}active{% endif %}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        Config
-                    </a>
-                </li>
-                <li>
-                    <a href="/scenarios/" class="{% if request.url.path.startswith('/scenarios') %}active{% endif %}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+            <main class="flex-1 overflow-auto">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+        <!-- Sidebar drawer -->
+        <div class="drawer-side z-40">
+            <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+            <aside class="w-64 bg-base-200 border-r border-base-300 flex flex-col min-h-full">
+                <div class="p-6 border-b border-base-300">
+                    <h1 class="text-xl font-bold flex items-center gap-2">
+                        <svg class="w-6 h-6 text-primary drop-shadow-[0_0_6px_oklch(var(--p))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
-                        Scenarios
-                    </a>
-                </li>
-                <li>
-                    <a href="/logs/" class="{% if request.url.path.startswith('/logs') %}active{% endif %}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Logs
-                    </a>
-                </li>
-            </ul>
-            <div class="p-4 border-t border-base-300">
-                <div class="text-xs text-base-content/50">TrapStack v1.0</div>
-            </div>
-        </aside>
-
-        <!-- Main content -->
-        <main class="flex-1 overflow-auto">
-            {% block content %}{% endblock %}
-        </main>
+                        <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">TrapStack</span>
+                    </h1>
+                </div>
+                <ul class="menu flex-1 p-4 gap-1 [&_a]:transition-all [&_a]:duration-200">
+                    <li>
+                        <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/decisions/" class="{% if request.url.path.startswith('/decisions') %}active{% endif %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                            </svg>
+                            Decisions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/alerts/" class="{% if request.url.path.startswith('/alerts') %}active{% endif %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                            Alerts
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/config/" class="{% if request.url.path.startswith('/config') %}active{% endif %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Config
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/scenarios/" class="{% if request.url.path.startswith('/scenarios') %}active{% endif %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            Scenarios
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/logs/" class="{% if request.url.path.startswith('/logs') %}active{% endif %}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Logs
+                        </a>
+                    </li>
+                </ul>
+                <div class="p-4 border-t border-base-300">
+                    <div class="text-xs text-base-content/50">TrapStack v1.0</div>
+                </div>
+            </aside>
+        </div>
     </div>
 </body>
 </html>
