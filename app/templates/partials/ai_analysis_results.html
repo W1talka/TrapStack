@@ -29,7 +29,6 @@
             <div class="flex items-start justify-between">
                 <div class="space-y-1 min-w-0 flex-1">
                     <h3 class="text-sm font-bold">{{ rec.title }}</h3>
-                    <p class="text-xs text-base-content/60 leading-relaxed">{{ rec.description }}</p>
                 </div>
                 <span class="shrink-0 ml-3 badge badge-sm
                     {% if rec.severity == 'critical' %}badge-error
@@ -39,6 +38,35 @@
                     {{ rec.severity }}
                 </span>
             </div>
+
+            <!-- Hit stats -->
+            <div class="flex items-center gap-3">
+                {% if rec.hits_count %}
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <span class="text-sm font-bold text-error">{{ rec.hits_count }}</span>
+                    <span class="text-xs text-base-content/50">hits</span>
+                </div>
+                {% endif %}
+                {% if rec.unique_ips %}
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="text-sm font-bold text-warning">{{ rec.unique_ips }}</span>
+                    <span class="text-xs text-base-content/50">unique IPs</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Reasoning -->
+            {% if rec.reasoning %}
+            <p class="text-xs text-base-content/60 leading-relaxed">{{ rec.reasoning }}</p>
+            {% endif %}
 
             <!-- Evidence -->
             <div class="bg-base-300/50 rounded-lg px-3 py-2">

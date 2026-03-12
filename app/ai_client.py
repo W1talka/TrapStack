@@ -49,8 +49,10 @@ You must respond ONLY with valid JSON in this exact format:
       "id": "<kebab-case-id>",
       "title": "<short title>",
       "severity": "<critical|high|medium|low>",
-      "description": "<what attack pattern this catches and why it matters>",
-      "evidence": "<specific log patterns that triggered this recommendation>",
+      "hits_count": <int, how many matching requests were found in the analyzed logs>,
+      "unique_ips": <int, how many unique IPs performed this attack>,
+      "reasoning": "<why this pattern is dangerous and why you recommend blocking it>",
+      "evidence": "<specific log entries/patterns that triggered this, with example requests>",
       "yaml_content": {
         "type": "leaky",
         "name": "crowdsec/<name>",
