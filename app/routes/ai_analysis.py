@@ -4,6 +4,7 @@ Analyzes recent nginx access logs with an LLM and generates
 CrowdSec scenario recommendations.
 """
 
+import html
 import json
 import logging
 import os
@@ -200,8 +201,9 @@ async def save_scenario(
 ):
     """HTMX endpoint: save an AI recommendation to the scenario library."""
     try:
-        yc = json.loads(yaml_content)
+        yc = json.loads(html.unescape(yaml_content))
     except json.JSONDecodeError:
+        logger.error(f"Failed to parse yaml_content: {yaml_content[:200]}")
         return HTMLResponse('<span class="badge badge-error">Invalid YAML data</span>')
 
     # Sanitize
@@ -261,8 +263,9 @@ async def deploy_scenario(
 ):
     """HTMX endpoint: save and deploy an AI recommendation."""
     try:
-        yc = json.loads(yaml_content)
+        yc = json.loads(html.unescape(yaml_content))
     except json.JSONDecodeError:
+        logger.error(f"Failed to parse yaml_content: {yaml_content[:200]}")
         return HTMLResponse('<span class="badge badge-error">Invalid YAML data</span>')
 
     safe_id = _sanitize_id(scenario_id)

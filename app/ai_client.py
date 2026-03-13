@@ -52,6 +52,7 @@ Use this exact format:
       "severity": "critical or high or medium or low",
       "hits_count": 42,
       "unique_ips": 3,
+      "attacker_ips": "1.2.3.4, 5.6.7.8, 9.10.11.12",
       "reasoning": "why this pattern is dangerous",
       "evidence": "example requests that triggered this",
       "scenario_name": "crowdsec/npmplus-example",
