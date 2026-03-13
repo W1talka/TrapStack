@@ -56,6 +56,16 @@ def _strip_code_fences(text):
     return text
 
 
+def _fix_malformed_json(text):
+    """Fix common local model JSON issues like escaped quotes at value level.
+
+    Local models sometimes output: "key": \\"value\\" instead of "key": "value"
+    """
+    # Fix: ": \"value\"" → ": "value" (escaped quotes used as string delimiters)
+    text = re.sub(r':\s*\\"([^"]*)\\"', r': "\1"', text)
+    return text
+
+
 def _validate_recommendation(rec):
     """Validate a single AI recommendation. Returns (cleaned_rec, error).
 
@@ -176,7 +186,11 @@ async def run_analysis(request: Request):
     # Parse response
     try:
         cleaned = _strip_code_fences(raw_response)
-        result = json.loads(cleaned)
+        try:
+            result = json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Retry with malformed JSON fixes (common with local models)
+            result = json.loads(_fix_malformed_json(cleaned))
     except json.JSONDecodeError:
         return HTMLResponse(
             f'<div class="alert alert-error">AI returned invalid JSON. Raw response:</div>'
