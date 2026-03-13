@@ -16,3 +16,8 @@ AI_PROVIDER = os.environ.get("AI_PROVIDER", "")        # "anthropic" or "openai"
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_API_URL = os.environ.get("AI_API_URL", "")           # Override for Ollama etc.
 AI_MODEL = os.environ.get("AI_MODEL", "")
+
+# Trusted IPs — excluded from AI analysis to prevent self-banning
+# Auto-detection of public IP is also done at analysis time
+_raw_trusted = os.environ.get("TRUSTED_IPS", "")
+TRUSTED_IPS = {ip.strip() for ip in _raw_trusted.split(",") if ip.strip()}

@@ -99,9 +99,13 @@ def tail_log(log_dir, host_filter=None, status_filter=None, limit=200):
     return entries
 
 
-def analyze_logs(log_dir=None, limit=2000):
-    """Read recent logs and produce an aggregated analysis summary for AI."""
+def analyze_logs(log_dir=None, limit=2000, trusted_ips=None):
+    """Read recent logs and produce an aggregated analysis summary for AI.
+
+    trusted_ips: set of IPs to exclude from IP-based analysis (prevents self-banning).
+    """
     log_dir = log_dir or config.NPMPLUS_LOG_DIR
+    trusted_ips = trusted_ips or set()
 
     entries = tail_log(log_dir, limit=limit)
     if not entries:
@@ -118,10 +122,12 @@ def analyze_logs(log_dir=None, limit=2000):
     # Status distribution
     status_dist = Counter(e["status"] for e in entries)
 
-    # Per-IP aggregation
+    # Per-IP aggregation (skip trusted IPs)
     ip_data = defaultdict(lambda: {"count": 0, "statuses": Counter(), "requests": [], "threats": 0})
     for e in entries:
         ip = e["remote_addr"]
+        if ip in trusted_ips:
+            continue
         ip_data[ip]["count"] += 1
         ip_data[ip]["statuses"][e["status"]] += 1
         if len(ip_data[ip]["requests"]) < 5:
@@ -170,9 +176,11 @@ def analyze_logs(log_dir=None, limit=2000):
         path_counter[path] += 1
     top_paths = [{"path": p, "count": c} for p, c in path_counter.most_common(30)]
 
-    # Suspicious path matches
+    # Suspicious path matches (skip trusted IPs)
     suspicious_found = defaultdict(lambda: {"count": 0, "ips": set(), "sample_requests": []})
     for e in entries:
+        if e["remote_addr"] in trusted_ips:
+            continue
         req_lower = e["request"].lower()
         for sp in SUSPICIOUS_PATHS:
             if sp.lower() in req_lower:
@@ -204,6 +212,8 @@ def analyze_logs(log_dir=None, limit=2000):
     unclassified = []
     seen_requests = set()
     for e in entries:
+        if e["remote_addr"] in trusted_ips:
+            continue
         if e["_threat"] is not None:
             continue
         status = int(e["status"])

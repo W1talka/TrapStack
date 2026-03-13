@@ -29,6 +29,19 @@ def _get_ai_client():
     return AIClient(get_http_client())
 
 
+async def _get_public_ip():
+    """Fetch server's public IP for trusted IP auto-detection. Non-critical."""
+    try:
+        resp = await get_http_client().get("https://api.ipify.org", timeout=5.0)
+        if resp.status_code == 200:
+            ip = resp.text.strip()
+            logger.info(f"Auto-detected public IP: {ip}")
+            return ip
+    except Exception:
+        logger.debug("Could not auto-detect public IP")
+    return None
+
+
 def _sanitize_id(raw_id):
     """Sanitize a scenario ID to only allow safe characters."""
     return re.sub(r"[^a-z0-9-]", "", raw_id.lower().strip())
@@ -126,9 +139,15 @@ async def run_analysis(request: Request):
     if not client.is_configured():
         return HTMLResponse('<div class="alert alert-error">AI is not configured.</div>')
 
+    # Build trusted IPs set (static config + auto-detected public IP)
+    trusted_ips = set(config.TRUSTED_IPS)
+    public_ip = await _get_public_ip()
+    if public_ip:
+        trusted_ips.add(public_ip)
+
     # Analyze logs
     try:
-        analysis = analyze_logs()
+        analysis = analyze_logs(trusted_ips=trusted_ips)
     except Exception as e:
         logger.exception("Log analysis failed")
         return HTMLResponse(f'<div class="alert alert-error">Failed to read logs: {e}</div>')

@@ -61,3 +61,12 @@ FastAPI does not have Flask's `flash()`. Messages are passed via query parameter
 ## Environment Variables
 
 See `.env.example`. Required: `CROWDSEC_LAPI_URL`, `CROWDSEC_API_KEY`, `CROWDSEC_CONF_DIR`. Optional: `NPMPLUS_LOG_DIR`, `CROWDSEC_MACHINE_ID`, `CROWDSEC_MACHINE_PASSWORD`.
+
+## README Maintenance
+
+Keep `README.md` up to date when making changes that affect:
+- Features (new pages, removed features, changed functionality)
+- Environment variables (new, renamed, or removed)
+- Dependencies or setup steps
+- Project structure (new top-level modules)
+- Docker configuration
