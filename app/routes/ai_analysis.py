@@ -57,12 +57,53 @@ def _strip_code_fences(text):
 
 
 def _fix_malformed_json(text):
-    """Fix common local model JSON issues like escaped quotes at value level.
+    """Fix common local model JSON issues.
 
-    Local models sometimes output: "key": \\"value\\" instead of "key": "value"
+    Handles:
+    - Escaped quotes as value delimiters: "key": \\"value\\" → "key": "value"
+    - Missing opening quote on string values: "key": Some text" → "key": "Some text"
+    - Truncated JSON: closes unclosed strings, arrays, objects
     """
-    # Fix: ": \"value\"" → ": "value" (escaped quotes used as string delimiters)
+    # Fix 1: escaped quotes used as string delimiters
     text = re.sub(r':\s*\\"([^"]*)\\"', r': "\1"', text)
+
+    # Fix 2: missing opening quote on string values
+    # In valid JSON, values after ":" can only start with: " [ { digit - true false null
+    # Anything else (like a letter) means a missing opening quote
+    text = re.sub(
+        r'(":\s*)(?!")(?!true\b|false\b|null\b|-?\d|\[|\{)(\S)',
+        r'\1"\2',
+        text,
+    )
+
+    # Fix 3: close truncated JSON (unclosed strings, brackets, braces)
+    text = text.rstrip().rstrip(",")
+    in_string = False
+    escape_next = False
+    stack = []
+    for ch in text:
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\" and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in "{[":
+            stack.append(ch)
+        elif ch == "}" and stack and stack[-1] == "{":
+            stack.pop()
+        elif ch == "]" and stack and stack[-1] == "[":
+            stack.pop()
+    if in_string:
+        text += '"'
+    for opener in reversed(stack):
+        text += "}" if opener == "{" else "]"
+
     return text
 
 
