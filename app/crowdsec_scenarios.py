@@ -1,11 +1,13 @@
 """CrowdSec scenario library — loads scenario templates from YAML files.
 
-Scenarios live in app/scenario_library/ as individual YAML files.
-The GUI allows deploying/undeploying these to the CrowdSec config directory.
+Scenarios are stored in a persistent directory inside the CrowdSec conf dir
+(trapstack-library/) so they survive container rebuilds. Default scenarios
+are seeded from the bundled app/scenario_library/ on first run.
 """
 
 import glob
 import os
+import shutil
 
 import yaml
 
@@ -15,8 +17,23 @@ _REQUIRED_KEYS = {"id", "filename", "severity", "description", "yaml_content"}
 
 
 def _library_dir():
-    """Path to the scenario library folder shipped with the app."""
+    """Persistent library dir inside the already-mounted CrowdSec conf dir."""
+    return os.path.join(config.CROWDSEC_CONF_DIR, "trapstack-library")
+
+
+def _bundled_dir():
+    """Built-in default scenarios shipped with the app image."""
     return os.path.join(os.path.dirname(__file__), "scenario_library")
+
+
+def seed_defaults():
+    """On first run, copy bundled defaults to persistent library dir if empty."""
+    lib = _library_dir()
+    os.makedirs(lib, exist_ok=True)
+    if glob.glob(os.path.join(lib, "*.yaml")):
+        return
+    for src in glob.glob(os.path.join(_bundled_dir(), "*.yaml")):
+        shutil.copy2(src, lib)
 
 
 def _load_scenarios():

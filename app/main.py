@@ -14,6 +14,8 @@ logger = logging.getLogger("trapstack")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.crowdsec_scenarios import seed_defaults
+    seed_defaults()
     deps.http_client = httpx.AsyncClient()
     yield
     await deps.http_client.aclose()
