@@ -48,7 +48,8 @@ def _sanitize_id(raw_id):
 
 
 def _strip_code_fences(text):
-    """Strip markdown code fences from AI response."""
+    """Strip markdown code fences and reasoning tags from AI response."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     text = text.strip()
     m = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
     if m:
