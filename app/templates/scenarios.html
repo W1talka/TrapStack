@@ -74,70 +74,60 @@
     </form>
     <div id="upload-result"></div>
 
-    <!-- Scenario cards -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- Scenarios list -->
+    <div class="space-y-1">
         {% for s in scenarios %}
-        <div class="card bg-base-200 shadow-sm">
-            <div class="card-body space-y-4">
-                <!-- Header -->
-                <div class="flex items-start justify-between">
-                    <div class="space-y-1">
-                        <h3 class="text-sm font-bold">{{ s.yaml_content.name }}</h3>
-                        <p class="text-xs text-base-content/60 leading-relaxed">{{ s.description }}</p>
+        <div class="collapse collapse-arrow bg-base-200 rounded-lg">
+            <input type="checkbox" />
+            <div class="collapse-title py-3 min-h-0">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <span class="text-sm font-bold">{{ s.yaml_content.name }}</span>
+                        <span class="text-xs text-base-content/60 ml-2 hidden sm:inline">{{ s.description[:80] }}</span>
                     </div>
-                    <span class="shrink-0 ml-3 badge badge-sm
-                        {% if s.severity == 'critical' %}badge-error
-                        {% elif s.severity == 'high' %}badge-warning
-                        {% elif s.severity == 'medium' %}badge-warning badge-outline
-                        {% else %}badge-info{% endif %}">
-                        {{ s.severity }}
-                    </span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="badge badge-sm
+                            {% if s.severity == 'critical' %}badge-error
+                            {% elif s.severity == 'high' %}badge-warning
+                            {% elif s.severity == 'medium' %}badge-warning badge-outline
+                            {% else %}badge-info{% endif %}">
+                            {{ s.severity }}
+                        </span>
+                        <div id="scenario-status-{{ s.id }}">
+                            {% if s.deployed %}
+                            <div class="flex items-center gap-1">
+                                <span class="badge badge-success badge-sm">Active</span>
+                                <button hx-post="/scenarios/undeploy"
+                                        hx-vals='{"id": "{{ s.id }}"}'
+                                        hx-target="#scenario-status-{{ s.id }}"
+                                        hx-swap="innerHTML"
+                                        class="btn btn-ghost btn-xs"
+                                        onclick="event.stopPropagation()">Undeploy</button>
+                            </div>
+                            {% else %}
+                            <div class="flex items-center gap-1">
+                                <span class="badge badge-ghost badge-sm">Inactive</span>
+                                <button hx-post="/scenarios/deploy"
+                                        hx-vals='{"id": "{{ s.id }}"}'
+                                        hx-target="#scenario-status-{{ s.id }}"
+                                        hx-swap="innerHTML"
+                                        class="btn btn-primary btn-xs"
+                                        onclick="event.stopPropagation()">Deploy</button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Details -->
-                <div class="flex flex-wrap gap-4 text-xs text-base-content/60">
-                    <div>
-                        <span class="opacity-60">Capacity:</span>
-                        <span class="font-medium">{{ s.yaml_content.capacity }}</span>
-                    </div>
-                    <div>
-                        <span class="opacity-60">Leak:</span>
-                        <span class="font-medium">{{ s.yaml_content.leakspeed }}</span>
-                    </div>
-                    <div>
-                        <span class="opacity-60">Blackhole:</span>
-                        <span class="font-medium">{{ s.yaml_content.blackhole }}</span>
-                    </div>
+            </div>
+            <div class="collapse-content">
+                <p class="text-xs text-base-content/60 mb-3">{{ s.description }}</p>
+                <div class="flex flex-wrap gap-4 text-xs text-base-content/60 mb-3">
+                    <div><span class="opacity-60">Capacity:</span> <span class="font-medium">{{ s.yaml_content.capacity }}</span></div>
+                    <div><span class="opacity-60">Leak:</span> <span class="font-medium">{{ s.yaml_content.leakspeed }}</span></div>
+                    <div><span class="opacity-60">Blackhole:</span> <span class="font-medium">{{ s.yaml_content.blackhole }}</span></div>
                 </div>
-
-                <!-- Filter preview -->
                 <div class="bg-base-300 rounded-lg px-3 py-2">
                     <code class="text-[11px] text-base-content/60 break-all">{{ s.yaml_content.filter }}</code>
-                </div>
-
-                <!-- Status + action -->
-                <div id="scenario-status-{{ s.id }}">
-                    <div class="flex items-center gap-3">
-                        {% if s.deployed %}
-                        <span class="badge badge-success">Active</span>
-                        <button hx-post="/scenarios/undeploy"
-                                hx-vals='{"id": "{{ s.id }}"}'
-                                hx-target="#scenario-status-{{ s.id }}"
-                                hx-swap="innerHTML"
-                                class="btn btn-ghost btn-xs">
-                            Undeploy
-                        </button>
-                        {% else %}
-                        <span class="badge badge-ghost">Not deployed</span>
-                        <button hx-post="/scenarios/deploy"
-                                hx-vals='{"id": "{{ s.id }}"}'
-                                hx-target="#scenario-status-{{ s.id }}"
-                                hx-swap="innerHTML"
-                                class="btn btn-primary btn-xs">
-                            Deploy
-                        </button>
-                        {% endif %}
-                    </div>
                 </div>
             </div>
         </div>
