@@ -27,13 +27,40 @@ def _bundled_dir():
 
 
 def seed_defaults():
-    """On first run, copy bundled defaults to persistent library dir if empty."""
+    """Seed defaults and import orphaned deployed scenarios into library."""
     lib = _library_dir()
     os.makedirs(lib, exist_ok=True)
-    if glob.glob(os.path.join(lib, "*.yaml")):
+    # Seed bundled defaults if library is empty
+    if not glob.glob(os.path.join(lib, "*.yaml")):
+        for src in glob.glob(os.path.join(_bundled_dir(), "*.yaml")):
+            shutil.copy2(src, lib)
+    # Import deployed custom scenarios not in library
+    sdir = _scenarios_dir()
+    if not os.path.isdir(sdir):
         return
-    for src in glob.glob(os.path.join(_bundled_dir(), "*.yaml")):
-        shutil.copy2(src, lib)
+    library_filenames = {os.path.basename(p) for p in glob.glob(os.path.join(lib, "*.yaml"))}
+    for path in glob.glob(os.path.join(sdir, "*.yaml")):
+        basename = os.path.basename(path)
+        if basename in library_filenames or os.path.islink(path):
+            continue
+        try:
+            with open(path) as f:
+                data = yaml.safe_load(f)
+            if not isinstance(data, dict) or "type" not in data:
+                continue
+            scenario_id = basename.replace(".yaml", "")
+            wrapper = {
+                "id": scenario_id,
+                "filename": basename,
+                "severity": "medium",
+                "description": data.get("description", ""),
+                "yaml_content": data,
+            }
+            dest = os.path.join(lib, basename)
+            with open(dest, "w") as f:
+                yaml.dump(wrapper, f, default_flow_style=False, sort_keys=False)
+        except Exception:
+            continue
 
 
 def _load_scenarios():
