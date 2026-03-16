@@ -9,8 +9,8 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 
 from app import config
 from app.crowdsec_scenarios import (
-    get_all_with_status, get_scenario_by_id, deploy, undeploy,
-    _library_dir, _REQUIRED_KEYS,
+    get_all_with_status, get_deployed_scenarios, get_scenario_by_id,
+    deploy, undeploy, _library_dir, _REQUIRED_KEYS,
 )
 from app.deps import templates
 
@@ -23,12 +23,14 @@ router = APIRouter(prefix="/scenarios")
 async def index(request: Request):
     scenarios = get_all_with_status()
     deployed_count = sum(1 for s in scenarios if s["deployed"])
+    deployed_external = get_deployed_scenarios()
     return templates.TemplateResponse(
         "scenarios.html",
         {
             "request": request,
             "scenarios": scenarios,
             "deployed_count": deployed_count,
+            "deployed_external": deployed_external,
         },
     )
 

@@ -143,5 +143,44 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Deployed CrowdSec Scenarios (external) -->
+    {% if deployed_external %}
+    <div class="collapse collapse-arrow bg-base-200">
+        <input type="checkbox" />
+        <div class="collapse-title font-bold">
+            CrowdSec Deployed Scenarios
+            <span class="text-sm font-normal text-base-content/60 ml-2">{{ deployed_external|length }} scenarios</span>
+        </div>
+        <div class="collapse-content">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra table-sm">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in deployed_external %}
+                        <tr>
+                            <td>
+                                {% if s.source == "hub" %}
+                                <span class="badge badge-info badge-sm">Hub</span>
+                                {% else %}
+                                <span class="badge badge-warning badge-sm">Custom</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-mono text-xs">{{ s.name }}</td>
+                            <td class="text-xs text-base-content/60 max-w-md truncate">{{ s.description }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

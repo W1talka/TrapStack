@@ -87,3 +87,35 @@ def get_scenario_by_id(scenario_id):
 def get_all_with_status():
     """Return all scenarios with their deployment status."""
     return [{**s, "deployed": is_deployed(s)} for s in _load_scenarios()]
+
+
+def get_deployed_scenarios():
+    """Scan CrowdSec scenarios dir for deployed scenarios not in the library."""
+    sdir = _scenarios_dir()
+    if not os.path.isdir(sdir):
+        return []
+
+    library_filenames = {s["filename"] for s in _load_scenarios()}
+
+    deployed = []
+    for path in sorted(glob.glob(os.path.join(sdir, "*.yaml"))):
+        basename = os.path.basename(path)
+        if basename in library_filenames:
+            continue
+        try:
+            with open(path) as f:
+                data = yaml.safe_load(f)
+            if not isinstance(data, dict):
+                continue
+            is_hub = os.path.islink(path)
+            deployed.append({
+                "filename": basename,
+                "name": data.get("name", basename.replace(".yaml", "")),
+                "description": data.get("description", ""),
+                "type": data.get("type", ""),
+                "filter": data.get("filter", ""),
+                "source": "hub" if is_hub else "custom",
+            })
+        except Exception:
+            continue
+    return deployed
