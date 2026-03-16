@@ -65,7 +65,7 @@
     <!-- Origin filter -->
     <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs text-base-content/60 font-medium mr-1">Origin:</span>
-        {% set origin_map = [("", "All"), ("crowdsec", "Local"), ("lists", "Blocklists"), ("CAPI", "Community")] %}
+        {% set origin_map = [("crowdsec", "Local"), ("lists", "Blocklists"), ("CAPI", "Community"), ("", "All")] %}
         {% for value, label in origin_map %}
         <a href="/decisions/?{% if value %}origin={{ value }}&{% endif %}search={{ search }}"
            class="btn btn-sm {% if selected_origin == value or (not value and not selected_origin) %}btn-primary{% else %}btn-outline{% endif %}">
