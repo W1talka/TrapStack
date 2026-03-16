@@ -65,6 +65,7 @@ python run.py
 | `AI_API_URL` | No | | Override API endpoint (e.g., `http://localhost:1234/v1` for LM Studio) |
 | `AI_MODEL` | No | | Override model name |
 | `TRUSTED_IPS` | No | | Comma-separated IPs excluded from AI analysis |
+| `CROWDSEC_CONTAINER_NAME` | No | `crowdsec` | Docker container name for restart button |
 
 ### CrowdSec Setup
 
@@ -108,6 +109,7 @@ services:
     volumes:
       - "/opt/crowdsec/conf:/opt/crowdsec/conf"
       - "/opt/npmplus/nginx/logs:/opt/npmplus/nginx/logs:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     env_file:
       - .env
 ```

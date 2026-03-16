@@ -1,15 +1,20 @@
 import io
+import logging
 import zipfile
 
+import httpx
 import yaml
 from fastapi import APIRouter, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse
 
+from app import config
 from app.crowdsec_scenarios import (
     get_all_with_status, get_scenario_by_id, deploy, undeploy,
     _library_dir, _REQUIRED_KEYS,
 )
 from app.deps import templates
+
+logger = logging.getLogger("trapstack.scenarios")
 
 router = APIRouter(prefix="/scenarios")
 
@@ -168,4 +173,31 @@ async def upload(file: UploadFile = File(...)):
         return HTMLResponse(
             '<div class="alert alert-error text-sm">Invalid ZIP file.</div>',
             status_code=400,
+        )
+
+
+@router.post("/restart-crowdsec")
+async def restart_crowdsec():
+    """Restart the CrowdSec Docker container via Docker socket API."""
+    container = config.CROWDSEC_CONTAINER_NAME
+    try:
+        transport = httpx.AsyncHTTPTransport(uds="/var/run/docker.sock")
+        async with httpx.AsyncClient(transport=transport) as client:
+            resp = await client.post(
+                f"http://localhost/containers/{container}/restart",
+                timeout=30.0,
+            )
+        if resp.status_code == 204:
+            logger.info(f"CrowdSec container '{container}' restarted")
+            return HTMLResponse(
+                '<span class="badge badge-success gap-1">Restarted</span>'
+            )
+        logger.error(f"CrowdSec restart failed: {resp.status_code} {resp.text[:200]}")
+        return HTMLResponse(
+            f'<span class="badge badge-error">Failed: {resp.status_code}</span>'
+        )
+    except Exception as e:
+        logger.exception("CrowdSec restart error")
+        return HTMLResponse(
+            f'<span class="badge badge-error">Error: {e}</span>'
         )

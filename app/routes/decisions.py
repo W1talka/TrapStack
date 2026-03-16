@@ -17,7 +17,7 @@ PER_PAGE = 100
 async def index(
     request: Request,
     search: str = Query(default=""),
-    origin: str = Query(default=""),
+    origin: str = Query(default="crowdsec"),
     page: int = Query(default=1, ge=1),
 ):
     error = None

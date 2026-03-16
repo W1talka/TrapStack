@@ -21,3 +21,6 @@ AI_MODEL = os.environ.get("AI_MODEL", "")
 # Auto-detection of public IP is also done at analysis time
 _raw_trusted = os.environ.get("TRUSTED_IPS", "")
 TRUSTED_IPS = {ip.strip() for ip in _raw_trusted.split(",") if ip.strip()}
+
+# Docker socket for CrowdSec container restart
+CROWDSEC_CONTAINER_NAME = os.environ.get("CROWDSEC_CONTAINER_NAME", "crowdsec")
