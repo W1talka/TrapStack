@@ -157,6 +157,7 @@
                 <table class="table table-zebra table-sm">
                     <thead>
                         <tr>
+                            <th>Status</th>
                             <th>Source</th>
                             <th>Name</th>
                             <th>Description</th>
@@ -165,6 +166,7 @@
                     <tbody>
                         {% for s in deployed_external %}
                         <tr>
+                            <td><span class="badge badge-success badge-sm">Active</span></td>
                             <td>
                                 {% if s.source == "hub" %}
                                 <span class="badge badge-info badge-sm">Hub</span>
