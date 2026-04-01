@@ -137,13 +137,12 @@ class AIClient:
             headers=headers,
             json={
                 "model": self.model,
-                "max_tokens": 4096,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
             },
-            timeout=120.0,
+            timeout=300.0,
         )
         if resp.status_code >= 400:
             body = resp.text[:500]
