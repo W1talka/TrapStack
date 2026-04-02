@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app import deps
-from app.routes import dashboard, decisions, alerts, config_editor, logs, scenarios, ai_analysis
+from app.routes import dashboard, decisions, alerts, config_editor, logs, scenarios, ai_analysis, geo_blocking
 
 logger = logging.getLogger("trapstack")
 
@@ -36,3 +36,4 @@ app.include_router(config_editor.router)
 app.include_router(logs.router)
 app.include_router(scenarios.router)
 app.include_router(ai_analysis.router)
+app.include_router(geo_blocking.router)

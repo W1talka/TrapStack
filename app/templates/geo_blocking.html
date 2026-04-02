@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Geo Blocking - TrapStack{% endblock %}
+
+{% block content %}
+<div class="p-4 lg:p-6 space-y-4 lg:space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 class="text-2xl font-bold">Geo Blocking</h2>
+        <span class="text-sm text-base-content/60">{{ blocked_count }} countries blocked</span>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error text-sm">{{ error }}</div>
+    {% endif %}
+
+    <!-- World Map (visual only) -->
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-2 sm:p-4">
+            <div id="world-map" class="w-full" style="min-height: 300px;"></div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body space-y-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium">Mode:</span>
+                    <label class="label cursor-pointer gap-2">
+                        <input type="radio" name="mode" value="blacklist" class="radio radio-sm radio-primary" checked
+                               onchange="document.getElementById('mode-input').value='blacklist'; updateButtonLabel()">
+                        <span class="text-sm">Blacklist</span>
+                    </label>
+                    <label class="label cursor-pointer gap-2">
+                        <input type="radio" name="mode" value="whitelist" class="radio radio-sm radio-warning"
+                               onchange="document.getElementById('mode-input').value='whitelist'; updateButtonLabel()">
+                        <span class="text-sm">Whitelist</span>
+                    </label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium">Duration:</span>
+                    <select id="duration-input" class="select select-bordered select-sm">
+                        <option value="24h">24 hours</option>
+                        <option value="168h">7 days</option>
+                        <option value="720h">30 days</option>
+                        <option value="8760h" selected>1 year</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Country selector -->
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="text" id="country-search" placeholder="Search countries..."
+                           class="input input-bordered input-sm flex-1 max-w-xs"
+                           oninput="filterCountries(this.value)">
+                    <button type="button" class="btn btn-ghost btn-xs" onclick="selectAll()">Select All</button>
+                    <button type="button" class="btn btn-ghost btn-xs" onclick="deselectAll()">Deselect All</button>
+                </div>
+                <div id="country-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 max-h-64 overflow-y-auto p-2 bg-base-300 rounded-lg">
+                    {% for code, name in countries | dictsort(by='value') %}
+                    <label class="country-item flex items-center gap-1.5 px-2 py-1 rounded hover:bg-base-100 cursor-pointer text-xs"
+                           data-name="{{ name | lower }}" data-code="{{ code }}">
+                        <input type="checkbox" class="checkbox checkbox-xs country-cb" value="{{ code }}"
+                               {% if code in blocked %}checked{% endif %}>
+                        <span class="font-mono text-base-content/60">{{ code }}</span>
+                        <span class="truncate">{{ name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Action -->
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-base-content/60">Selected: <strong id="selected-count">{{ blocked_count }}</strong> countries</span>
+                <form class="contents" hx-post="/geo-blocking/block" hx-target="#block-result" hx-swap="innerHTML">
+                    <input type="hidden" id="countries-input" name="countries" value="">
+                    <input type="hidden" id="mode-input" name="mode" value="blacklist">
+                    <input type="hidden" id="duration-hidden" name="duration" value="8760h">
+                    <button type="submit" id="block-btn" class="btn btn-error btn-sm"
+                            onclick="prepareSubmit()">
+                        Block Selected
+                    </button>
+                </form>
+                <div id="block-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Country Blocks -->
+    {% if blocked %}
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-sm">Active Country Blocks</h3>
+                <form hx-post="/geo-blocking/clear-all" hx-target="#clear-result" hx-swap="innerHTML"
+                      hx-confirm="Remove ALL country blocks?">
+                    <button type="submit" class="btn btn-ghost btn-xs text-error">Clear All</button>
+                </form>
+            </div>
+            <div id="clear-result"></div>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra table-sm">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Country</th>
+                            <th>Expiry</th>
+                            <th>Origin</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for code, info in blocked | dictsort %}
+                        <tr id="geo-row-{{ code }}">
+                            <td class="font-mono font-bold">{{ code }}</td>
+                            <td>{{ info.name }}</td>
+                            <td class="text-base-content/60">{{ info.duration }}</td>
+                            <td class="text-base-content/60">{{ info.origin }}</td>
+                            <td>
+                                <form hx-post="/geo-blocking/remove" hx-target="#geo-row-{{ code }}" hx-swap="outerHTML">
+                                    <input type="hidden" name="country" value="{{ code }}">
+                                    <button type="submit" class="btn btn-error btn-outline btn-xs">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- D3.js + TopoJSON for world map -->
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+// Blocked countries from server
+const blockedCountries = new Set({{ blocked.keys() | list | tojson }});
+
+// Numeric ISO to alpha-2 mapping
+const numToAlpha = {{ numeric_map | tojson }};
+
+// Country names
+const countryNames = {{ countries | tojson }};
+
+// Render world map
+const container = document.getElementById('world-map');
+const width = container.clientWidth;
+const height = Math.max(300, width * 0.5);
+
+const svg = d3.select('#world-map')
+    .append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .style('width', '100%')
+    .style('height', 'auto');
+
+const projection = d3.geoNaturalEarth1()
+    .scale(width / 5.5)
+    .translate([width / 2, height / 2]);
+
+const path = d3.geoPath().projection(projection);
+
+// Tooltip
+const tooltip = d3.select('#world-map')
+    .append('div')
+    .style('position', 'absolute')
+    .style('background', 'oklch(0.2 0 0)')
+    .style('color', 'oklch(0.9 0 0)')
+    .style('padding', '4px 8px')
+    .style('border-radius', '4px')
+    .style('font-size', '12px')
+    .style('pointer-events', 'none')
+    .style('opacity', 0)
+    .style('z-index', 10);
+
+// Load and render
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world => {
+    const countries = topojson.feature(world, world.objects.countries);
+
+    svg.selectAll('path')
+        .data(countries.features)
+        .enter()
+        .append('path')
+        .attr('d', path)
+        .attr('fill', d => {
+            const code = numToAlpha[String(d.id).padStart(3, '0')] || '';
+            return blockedCountries.has(code) ? '#dc2626' : '#1e293b';
+        })
+        .attr('stroke', '#334155')
+        .attr('stroke-width', 0.5)
+        .on('mouseover', function(event, d) {
+            const code = numToAlpha[String(d.id).padStart(3, '0')] || '';
+            const name = countryNames[code] || d.properties?.name || 'Unknown';
+            const status = blockedCountries.has(code) ? ' (BLOCKED)' : '';
+            d3.select(this).attr('fill', blockedCountries.has(code) ? '#ef4444' : '#3b82f6');
+            tooltip.style('opacity', 1).html(`<strong>${code}</strong> ${name}${status}`);
+        })
+        .on('mousemove', function(event) {
+            tooltip
+                .style('left', (event.offsetX + 10) + 'px')
+                .style('top', (event.offsetY - 10) + 'px');
+        })
+        .on('mouseout', function(event, d) {
+            const code = numToAlpha[String(d.id).padStart(3, '0')] || '';
+            d3.select(this).attr('fill', blockedCountries.has(code) ? '#dc2626' : '#1e293b');
+            tooltip.style('opacity', 0);
+        });
+
+    // Draw borders between countries
+    svg.append('path')
+        .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+        .attr('fill', 'none')
+        .attr('stroke', '#334155')
+        .attr('stroke-width', 0.5)
+        .attr('d', path);
+});
+
+// Country selector JS
+function filterCountries(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('.country-item').forEach(el => {
+        const name = el.dataset.name;
+        const code = el.dataset.code.toLowerCase();
+        el.style.display = (name.includes(q) || code.includes(q)) ? '' : 'none';
+    });
+}
+
+function selectAll() {
+    document.querySelectorAll('.country-item:not([style*="display: none"]) .country-cb').forEach(cb => cb.checked = true);
+    updateCount();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.country-cb').forEach(cb => cb.checked = false);
+    updateCount();
+}
+
+function updateCount() {
+    const count = document.querySelectorAll('.country-cb:checked').length;
+    document.getElementById('selected-count').textContent = count;
+}
+
+function updateButtonLabel() {
+    const mode = document.getElementById('mode-input').value;
+    document.getElementById('block-btn').textContent =
+        mode === 'whitelist' ? 'Allow Only Selected' : 'Block Selected';
+}
+
+function prepareSubmit() {
+    const selected = [...document.querySelectorAll('.country-cb:checked')].map(cb => cb.value);
+    document.getElementById('countries-input').value = selected.join(',');
+    document.getElementById('duration-hidden').value = document.getElementById('duration-input').value;
+}
+
+// Update count on checkbox change
+document.querySelectorAll('.country-cb').forEach(cb => {
+    cb.addEventListener('change', updateCount);
+});
+</script>
+{% endblock %}

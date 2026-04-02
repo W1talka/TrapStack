@@ -98,6 +98,24 @@ class CrowdSecClient:
         ]
         return await self._post("/v1/decisions", payload, use_machine=True)
 
+    async def add_decisions_bulk(self, decisions_list):
+        """Add multiple decisions in one LAPI call.
+
+        Each item: {"scope": "Country", "value": "CN", "duration": "7d", "reason": "..."}
+        """
+        payload = [
+            {
+                "duration": d["duration"],
+                "origin": "trapstack",
+                "reason": d.get("reason", "Geo block via TrapStack"),
+                "scope": d["scope"],
+                "type": "ban",
+                "value": d["value"],
+            }
+            for d in decisions_list
+        ]
+        return await self._post("/v1/decisions", payload, use_machine=True)
+
     async def delete_decision(self, decision_id):
         """Delete a decision by ID via machine auth."""
         return await self._delete(f"/v1/decisions/{decision_id}", use_machine=True)
