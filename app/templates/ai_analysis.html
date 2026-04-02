@@ -6,7 +6,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 class="text-2xl font-bold">AI Log Analysis</h2>
         {% if ai_configured %}
-        <span class="badge badge-ghost text-xs">{{ ai_provider }} / {{ ai_model }}</span>
+        <span class="badge badge-ghost text-xs">{{ ai_provider }}{% if ai_model %} / {{ ai_model }}{% endif %}</span>
         {% endif %}
     </div>
 

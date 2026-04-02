@@ -81,24 +81,27 @@ class AIClient:
     def __init__(self, http_client: httpx.AsyncClient):
         self.provider = config.AI_PROVIDER.lower().strip()
         self.api_key = config.AI_API_KEY
-        self.api_url = config.AI_API_URL.rstrip("/") if config.AI_API_URL else self._default_url()
-        self.model = config.AI_MODEL or self._default_model()
+        self.model = config.AI_MODEL
         self._http = http_client
 
-    def _default_url(self) -> str:
-        if self.provider == "anthropic":
-            return "https://api.anthropic.com"
-        return "https://api.openai.com/v1"
+        # Auto-detect: if URL is set but provider isn't, treat as openai-compatible
+        if not self.provider and config.AI_API_URL:
+            self.provider = "openai"
 
-    def _default_model(self) -> str:
-        if self.provider == "anthropic":
-            return "claude-sonnet-4-20250514"
-        return "gpt-4o"
+        if config.AI_API_URL:
+            self.api_url = config.AI_API_URL.rstrip("/")
+        elif self.provider == "anthropic":
+            self.api_url = "https://api.anthropic.com"
+        else:
+            self.api_url = "https://api.openai.com/v1"
+
+        # Only set default model if provider is explicitly configured
+        if not self.model and self.provider == "anthropic":
+            self.model = "claude-sonnet-4-20250514"
 
     def is_configured(self) -> bool:
         if not self.provider:
             return False
-        # Anthropic always needs an API key; local/openai-compatible may not
         if self.provider == "anthropic":
             return bool(self.api_key)
         return True
@@ -132,16 +135,18 @@ class AIClient:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        body = {
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        if self.model:
+            body["model"] = self.model
         resp = await self._http.post(
             f"{self.api_url}/chat/completions",
             headers=headers,
-            json={
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-            },
+            json=body,
             timeout=300.0,
         )
         if resp.status_code >= 400:
