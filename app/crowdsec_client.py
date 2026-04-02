@@ -82,39 +82,53 @@ class CrowdSecClient:
                 return []
             raise
 
-    # --- Write operations (machine auth) ---
+    # --- Write operations (machine auth via alerts) ---
+
+    def _build_alert(self, scope, value, duration, reason, action="ban"):
+        """Build a LAPI alert payload containing a decision."""
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        scenario = f"trapstack/{reason.replace(' ', '-').lower()[:40]}"
+        return {
+            "scenario": scenario,
+            "scenario_hash": "",
+            "scenario_version": "",
+            "message": reason,
+            "events": [],
+            "events_count": 1,
+            "start_at": now,
+            "stop_at": now,
+            "capacity": 0,
+            "leakspeed": "0",
+            "simulated": False,
+            "source": {"scope": scope, "value": value},
+            "decisions": [
+                {
+                    "scenario": scenario,
+                    "scope": scope,
+                    "value": value,
+                    "type": action,
+                    "duration": duration,
+                    "origin": "trapstack",
+                }
+            ],
+        }
 
     async def add_decision(self, ip, duration, reason, action="ban", scope="Ip"):
-        """Add a manual decision via machine auth."""
-        payload = [
-            {
-                "duration": duration,
-                "origin": "trapstack",
-                "reason": reason,
-                "scope": scope,
-                "type": action,
-                "value": ip,
-            }
-        ]
-        return await self._post("/v1/decisions", payload, use_machine=True)
+        """Add a manual decision via machine auth (through alerts endpoint)."""
+        alert = self._build_alert(scope, ip, duration, reason, action)
+        return await self._post("/v1/alerts", [alert], use_machine=True)
 
     async def add_decisions_bulk(self, decisions_list):
-        """Add multiple decisions in one LAPI call.
-
-        Each item: {"scope": "Country", "value": "CN", "duration": "7d", "reason": "..."}
-        """
-        payload = [
-            {
-                "duration": d["duration"],
-                "origin": "trapstack",
-                "reason": d.get("reason", "Geo block via TrapStack"),
-                "scope": d["scope"],
-                "type": "ban",
-                "value": d["value"],
-            }
+        """Add multiple decisions via alerts. One alert per decision."""
+        alerts = [
+            self._build_alert(
+                d["scope"], d["value"], d["duration"],
+                d.get("reason", "Geo block via TrapStack"),
+            )
             for d in decisions_list
         ]
-        return await self._post("/v1/decisions", payload, use_machine=True)
+        return await self._post("/v1/alerts", alerts, use_machine=True)
 
     async def delete_decision(self, decision_id):
         """Delete a decision by ID via machine auth."""
