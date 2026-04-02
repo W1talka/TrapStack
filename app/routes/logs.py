@@ -61,6 +61,28 @@ def _tail_error_log(log_dir, limit=100):
     return entries
 
 
+async def _lookup_countries(entries):
+    """Batch lookup country codes for IPs via ip-api.com."""
+    unique_ips = list({e["remote_addr"] for e in entries})[:100]
+    if not unique_ips:
+        return {}
+    try:
+        resp = await get_http_client().post(
+            "http://ip-api.com/batch?fields=query,countryCode",
+            json=unique_ips,
+            timeout=5.0,
+        )
+        if resp.status_code == 200:
+            return {
+                item["query"]: item["countryCode"]
+                for item in resp.json()
+                if item.get("countryCode")
+            }
+    except Exception:
+        pass
+    return {}
+
+
 async def _get_banned_ips():
     """Fetch currently banned IPs from CrowdSec LAPI."""
     try:
@@ -103,6 +125,9 @@ async def index(
                            status_filter=status_filter or None, limit=limit)
         entries = classify_entries(entries)
         banned_ips = await _get_banned_ips()
+        ip_countries = await _lookup_countries(entries)
+        for entry in entries:
+            entry["country"] = ip_countries.get(entry["remote_addr"], "")
 
         # Build bulk ban data for the "Ban All" button
         threat_data = []

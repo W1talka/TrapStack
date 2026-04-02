@@ -38,7 +38,7 @@
                     <td class="hidden md:table-cell text-primary whitespace-nowrap text-xs">{{ entry.host }}</td>
                     <td class="whitespace-nowrap text-xs font-mono">
                         <span class="inline-flex items-center gap-1.5">
-                            {{ entry.remote_addr }}
+                            {% if entry.country %}<span title="{{ entry.country }}">{{ entry.country | country_flag }}</span>{% endif %}{{ entry.remote_addr }}
                             {% if entry.remote_addr in banned_ips %}
                             <span class="badge badge-error badge-xs gap-0.5" title="This IP is currently banned in CrowdSec">
                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
