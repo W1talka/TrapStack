@@ -51,9 +51,9 @@ async def index(
     paginated = alerts[start:start + PER_PAGE]
 
     return templates.TemplateResponse(
+        request,
         "alerts.html",
         {
-            "request": request,
             "alerts": paginated,
             "total": total,
             "all_scenarios": all_scenarios,
@@ -76,6 +76,7 @@ async def detail(request: Request, alert_id: int):
         alert = None
 
     return templates.TemplateResponse(
+        request,
         "partials/alert_detail.html",
-        {"request": request, "alert": alert},
+        {"alert": alert},
     )

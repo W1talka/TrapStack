@@ -58,9 +58,9 @@ async def index(
     paginated = decisions[start:start + PER_PAGE]
 
     return templates.TemplateResponse(
+        request,
         "decisions.html",
         {
-            "request": request,
             "decisions": paginated,
             "total": total,
             "search": search,
@@ -119,8 +119,9 @@ async def delete(request: Request, decision_id: int):
         pass
 
     return templates.TemplateResponse(
+        request,
         "partials/decisions_table.html",
-        {"request": request, "decisions": decisions},
+        {"decisions": decisions},
     )
 
 
@@ -145,6 +146,7 @@ async def partial_table(request: Request, search: str = Query(default="")):
         pass
 
     return templates.TemplateResponse(
+        request,
         "partials/decisions_table.html",
-        {"request": request, "decisions": decisions},
+        {"decisions": decisions},
     )

@@ -58,9 +58,9 @@ async def index(request: Request):
         logger.warning(f"Could not fetch alerts: {e}")
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "decisions": decisions[:10],
             "alerts": alerts[:10],
             "stats": stats,
@@ -113,9 +113,9 @@ async def partial_stats(request: Request):
         pass
 
     return templates.TemplateResponse(
+        request,
         "partials/dashboard_stats.html",
         {
-            "request": request,
             "decisions": decisions[:10],
             "stats": stats,
             "error": error,

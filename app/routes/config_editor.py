@@ -69,9 +69,9 @@ async def index(
             error = f"Error reading file: {e}"
 
     return templates.TemplateResponse(
+        request,
         "config_editor.html",
         {
-            "request": request,
             "file_groups": file_groups,
             "selected": selected,
             "content": content,

@@ -25,9 +25,9 @@ async def index(request: Request):
     deployed_count = sum(1 for s in scenarios if s["deployed"])
     deployed_external = get_deployed_scenarios()
     return templates.TemplateResponse(
+        request,
         "scenarios.html",
         {
-            "request": request,
             "scenarios": scenarios,
             "deployed_count": deployed_count,
             "deployed_external": deployed_external,

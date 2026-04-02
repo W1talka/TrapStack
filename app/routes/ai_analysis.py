@@ -174,9 +174,9 @@ def _validate_recommendation(rec):
 async def index(request: Request):
     client = _get_ai_client()
     return templates.TemplateResponse(
+        request,
         "ai_analysis.html",
         {
-            "request": request,
             "ai_configured": client.is_configured(),
             "ai_provider": config.AI_PROVIDER,
             "ai_model": client.model if client.is_configured() else "",
@@ -255,9 +255,9 @@ async def run_analysis(request: Request):
             logger.warning(f"Skipped invalid recommendation: {error}")
 
     return templates.TemplateResponse(
+        request,
         "partials/ai_analysis_results.html",
         {
-            "request": request,
             "recommendations": valid_recs,
             "summary": summary,
             "total_entries": analysis["total_entries"],

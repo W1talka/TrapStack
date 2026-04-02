@@ -122,9 +122,9 @@ async def index(
         bulk_threats_json = json.dumps(threat_data)
 
     return templates.TemplateResponse(
+        request,
         "logs.html",
         {
-            "request": request,
             "hosts": hosts,
             "status_codes": status_codes,
             "entries": entries,
