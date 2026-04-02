@@ -34,8 +34,8 @@ async def index(
         # Extract unique origins for filter chips
         all_origins = sorted(set(d.get("origin", "") for d in decisions if d.get("origin")))
 
-        # Apply origin filter
-        if origin_filter:
+        # Apply origin filter ("all" shows everything)
+        if origin_filter and origin_filter != "all":
             decisions = [d for d in decisions if d.get("origin") == origin_filter]
 
         if search:
